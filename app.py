@@ -4,6 +4,8 @@ import arabic_reshaper
 from bidi.algorithm import get_display
 import os
 import traceback
+from auth import init_auth, logout
+import base64
 
 # تنظیمات اولیه صفحه
 st.set_page_config(
@@ -16,89 +18,296 @@ st.set_page_config(
 # تنظیم مسیر فونت
 FONT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "Vazirmatn-Regular.ttf")
 
+# تبدیل مسیر فایل به URL
+FONT_URL = f"data:font/ttf;base64,{base64.b64encode(open(FONT_PATH, 'rb').read()).decode()}"
+
 # تنظیمات استایل
 st.markdown(f"""
     <style>
     @font-face {{
         font-family: 'Vazir';
-        src: url('{FONT_PATH}') format('truetype');
+        src: url('{FONT_URL}') format('truetype');
+        font-weight: normal;
+        font-style: normal;
     }}
     
-    * {{
+    html, body, [class*="st-"] {{
         font-family: 'Vazir', sans-serif !important;
     }}
     
-    .main {{
-        padding: 2rem;
-        background-color: #f8f9fa;
+    input, button, textarea, select {{
+        font-family: 'Vazir', sans-serif !important;
     }}
     
-    .stButton>button {{
-        width: 100%;
-        height: 3rem;
-        font-size: 1.2rem;
-        background-color: #2196F3;
-        color: white;
-        border-radius: 10px;
-        border: none;
-        margin-top: 1rem;
-        transition: all 0.3s ease;
+    .stTextInput > div > div > input {{
+        font-family: 'Vazir', sans-serif !important;
     }}
     
-    .stButton>button:hover {{
-        background-color: #1976D2;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    .stButton > button {{
+        font-family: 'Vazir', sans-serif !important;
     }}
     
-    .upload-header {{
-        font-size: 1.5rem;
-        color: #1a237e;
-        margin-bottom: 1rem;
-        font-weight: bold;
-    }}
-    
-    .settings-header {{
-        font-size: 1.3rem;
-        color: #283593;
-        margin-top: 2rem;
-        margin-bottom: 1rem;
-        font-weight: bold;
-    }}
-    
-    .preview-container {{
-        background-color: white;
-        padding: 2rem;
-        border-radius: 15px;
-        margin: 1rem 0;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }}
-    
-    .stSlider {{
-        margin: 1rem 0;
-    }}
-    
-    .stColorPicker {{
-        margin: 1rem 0;
-    }}
-    
-    .sidebar .sidebar-content {{
-        background-color: #1a237e;
-        color: white;
+    .stMarkdown {{
+        font-family: 'Vazir', sans-serif !important;
     }}
     
     .stAlert {{
-        border-radius: 10px;
-        padding: 1rem;
+        font-family: 'Vazir', sans-serif !important;
     }}
     
-    .stFileUploader {{
-        border: 2px dashed #2196F3;
-        border-radius: 10px;
-        padding: 1rem;
+    .stTabs [data-baseweb="tab-list"] {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stTabs [data-baseweb="tab"] {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stSelectbox > div > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stSlider > div > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stColorPicker > div > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stFileUploader > div > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stSidebar [data-testid="stSidebar"] {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stTextInput > div > div > input::placeholder {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stTextArea > div > div > textarea {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stTextArea > div > div > textarea::placeholder {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stSelectbox > div > div > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stMultiSelect > div > div > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stRadio > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stCheckbox > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stDateInput > div > div > input {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stTimeInput > div > div > input {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stNumberInput > div > div > input {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stDownloadButton > button {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stProgress > div > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stSpinner > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stSuccess, .stError, .stWarning, .stInfo {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stTooltip {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stHelp {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stCaption {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stCode {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stJson {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stDataFrame {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stTable {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stMetric {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stGraphvizChart {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stPlotlyChart {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stVegaLiteChart {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stPydeckChart {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stMap {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stImage {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stVideo {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stAudio {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stBalloons {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stSnow {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stConfetti {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stProgress > div > div > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stSpinner > div > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stSuccess > div, .stError > div, .stWarning > div, .stInfo > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stTooltip > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stHelp > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stCaption > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stCode > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stJson > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stDataFrame > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stTable > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stMetric > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stGraphvizChart > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stPlotlyChart > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stVegaLiteChart > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stPydeckChart > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stMap > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stImage > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stVideo > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stAudio > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stBalloons > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stSnow > div {{
+        font-family: 'Vazir', sans-serif !important;
+    }}
+    
+    .stConfetti > div {{
+        font-family: 'Vazir', sans-serif !important;
     }}
     </style>
 """, unsafe_allow_html=True)
+
+# بررسی احراز هویت
+if not init_auth():
+    st.stop()
 
 # عنوان اصلی
 st.title("🎨 تصویرساز فارسی")
@@ -120,6 +329,12 @@ with st.sidebar:
     - می‌توانید موقعیت و سایز تصویر و متن را تنظیم کنید
     - تصویر نهایی در فایل output.png ذخیره می‌شود
     """)
+    
+    # نمایش اطلاعات کاربر و دکمه خروج
+    st.markdown("---")
+    st.markdown(f"👤 کاربر: {st.session_state.username}")
+    if st.button("🚪 خروج"):
+        logout()
 
 # آپلود تمپلیت
 st.markdown('<p class="upload-header">1️⃣ آپلود تمپلیت</p>', unsafe_allow_html=True)
