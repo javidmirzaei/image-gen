@@ -4,8 +4,8 @@ import arabic_reshaper
 from bidi.algorithm import get_display
 import os
 import traceback
-from auth import init_auth, logout
 import base64
+from auth import init_auth, logout
 
 # تنظیمات اولیه صفحه
 st.set_page_config(
@@ -83,224 +83,66 @@ st.markdown(f"""
         font-family: 'Vazir', sans-serif !important;
     }}
     
-    .stTextInput > div > div > input::placeholder {{
-        font-family: 'Vazir', sans-serif !important;
+    .layer-card {{
+        background-color: white;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }}
     
-    .stTextArea > div > div > textarea {{
-        font-family: 'Vazir', sans-serif !important;
+    .layer-header {{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
     }}
     
-    .stTextArea > div > div > textarea::placeholder {{
-        font-family: 'Vazir', sans-serif !important;
+    .layer-title {{
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #1a237e;
     }}
     
-    .stSelectbox > div > div > div {{
-        font-family: 'Vazir', sans-serif !important;
+    .layer-controls {{
+        display: flex;
+        gap: 0.5rem;
     }}
     
-    .stMultiSelect > div > div > div {{
-        font-family: 'Vazir', sans-serif !important;
+    .layer-content {{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
     }}
     
-    .stRadio > div {{
-        font-family: 'Vazir', sans-serif !important;
+    .layer-preview {{
+        width: 100%;
+        height: 150px;
+        object-fit: contain;
+        border: 1px solid #e0e0e0;
+        border-radius: 5px;
     }}
     
-    .stCheckbox > div {{
-        font-family: 'Vazir', sans-serif !important;
+    .layer-settings {{
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
     }}
     
-    .stDateInput > div > div > input {{
-        font-family: 'Vazir', sans-serif !important;
+    .add-layer-button {{
+        width: 100%;
+        padding: 1rem;
+        background-color: #e3f2fd;
+        border: 2px dashed #2196F3;
+        border-radius: 10px;
+        color: #1976D2;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
     }}
     
-    .stTimeInput > div > div > input {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stNumberInput > div > div > input {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stDownloadButton > button {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stProgress > div > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stSpinner > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stSuccess, .stError, .stWarning, .stInfo {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stTooltip {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stHelp {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stCaption {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stCode {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stJson {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stDataFrame {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stTable {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stMetric {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stGraphvizChart {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stPlotlyChart {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stVegaLiteChart {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stPydeckChart {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stMap {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stImage {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stVideo {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stAudio {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stBalloons {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stSnow {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stConfetti {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stProgress > div > div > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stSpinner > div > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stSuccess > div, .stError > div, .stWarning > div, .stInfo > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stTooltip > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stHelp > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stCaption > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stCode > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stJson > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stDataFrame > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stTable > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stMetric > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stGraphvizChart > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stPlotlyChart > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stVegaLiteChart > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stPydeckChart > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stMap > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stImage > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stVideo > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stAudio > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stBalloons > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stSnow > div {{
-        font-family: 'Vazir', sans-serif !important;
-    }}
-    
-    .stConfetti > div {{
-        font-family: 'Vazir', sans-serif !important;
+    .add-layer-button:hover {{
+        background-color: #bbdefb;
     }}
     </style>
 """, unsafe_allow_html=True)
@@ -309,32 +151,24 @@ st.markdown(f"""
 if not init_auth():
     st.stop()
 
+# کلاس برای مدیریت لایه‌ها
+class Layer:
+    def __init__(self, name, image=None):
+        self.name = name
+        self.image = image
+        self.x_percent = 50
+        self.y_percent = 50
+        self.size_percent = 30
+        self.opacity = 100
+        self.visible = True
+
+# مدیریت لایه‌ها در session state
+if 'layers' not in st.session_state:
+    st.session_state.layers = []
+
 # عنوان اصلی
 st.title("🎨 تصویرساز فارسی")
 st.markdown("---")
-
-# سایدبار
-with st.sidebar:
-    st.header("📝 راهنما")
-    st.markdown("""
-    ### نحوه استفاده:
-    1. یک تمپلیت آپلود کنید
-    2. تصویر مورد نظر را آپلود کنید
-    3. متن فارسی را وارد کنید
-    4. تنظیمات را تغییر دهید
-    5. دکمه ساخت تصویر را بزنید
-    
-    ### نکات مهم:
-    - از فونت وزیر برای نمایش متن فارسی استفاده می‌شود
-    - می‌توانید موقعیت و سایز تصویر و متن را تنظیم کنید
-    - تصویر نهایی در فایل output.png ذخیره می‌شود
-    """)
-    
-    # نمایش اطلاعات کاربر و دکمه خروج
-    st.markdown("---")
-    st.markdown(f"👤 کاربر: {st.session_state.username}")
-    if st.button("🚪 خروج"):
-        logout()
 
 # آپلود تمپلیت
 st.markdown('<p class="upload-header">1️⃣ آپلود تمپلیت</p>', unsafe_allow_html=True)
@@ -346,21 +180,11 @@ if template_file:
     except Exception as e:
         st.error(f"خطا در بارگذاری تمپلیت: {str(e)}")
 
-# آپلود تصویر
-st.markdown('<p class="upload-header">2️⃣ آپلود تصویر</p>', unsafe_allow_html=True)
-image_file = st.file_uploader("تصویر را انتخاب کنید", type=["png", "jpg", "jpeg"], help="تصویری که می‌خواهید در تمپلیت قرار دهید را آپلود کنید")
-if image_file:
-    try:
-        image_preview = Image.open(image_file)
-        st.image(image_preview, caption="پیش‌نمایش تصویر", width=300)
-    except Exception as e:
-        st.error(f"خطا در بارگذاری تصویر: {str(e)}")
-
 # ورود متن
 st.markdown('<p class="upload-header">3️⃣ وارد کردن متن</p>', unsafe_allow_html=True)
 text = st.text_input("متن مورد نظر را وارد کنید", help="متن فارسی که می‌خواهید روی تصویر قرار دهید را وارد کنید")
 
-# تنظیمات متن و تصویر
+# تنظیمات متن
 st.markdown('<p class="settings-header">⚙️ تنظیمات متن</p>', unsafe_allow_html=True)
 text_col1, text_col2 = st.columns(2)
 with text_col1:
@@ -370,87 +194,187 @@ with text_col2:
     text_x_percent = st.slider("موقعیت افقی متن (%)", 0, 100, 50, help="0: چپ، 50: وسط، 100: راست")
     text_y_percent = st.slider("موقعیت عمودی متن (%)", 0, 100, 50, help="0: بالا، 50: وسط، 100: پایین")
 
-st.markdown('<p class="settings-header">⚙️ تنظیمات تصویر</p>', unsafe_allow_html=True)
-img_col1, img_col2, img_col3 = st.columns(3)
-with img_col1:
-    img_x_percent = st.slider("موقعیت افقی تصویر (%)", 0, 100, 50, help="0: چپ، 50: وسط، 100: راست")
-with img_col2:
-    img_y_percent = st.slider("موقعیت عمودی تصویر (%)", 0, 100, 50, help="0: بالا، 50: وسط، 100: پایین")
-with img_col3:
-    img_size_percent = st.slider("سایز تصویر (% کوچکترین بعد)", 10, 100, 30, help="سایز تصویر به صورت درصدی از کوچکترین بعد تمپلیت")
-
-# پیش‌نمایش زنده
-if template_file and (image_file or text):
-    st.markdown('<p class="settings-header">👁️ پیش‌نمایش</p>', unsafe_allow_html=True)
-    st.markdown('<div class="preview-container">', unsafe_allow_html=True)
-    try:
-        # باز کردن تمپلیت
-        template = Image.open(template_file)
-        preview_image = template.copy()
-        draw = ImageDraw.Draw(preview_image)
+# سایدبار
+with st.sidebar:
+    # تب‌های سایدبار
+    tab1, tab2 = st.tabs(["📝 راهنما", "👁️ پیش‌نمایش"])
+    
+    with tab1:
+        st.header("راهنمای استفاده")
+        st.markdown("""
+        ### نحوه استفاده:
+        1. یک تمپلیت آپلود کنید
+        2. لایه‌های مورد نظر را اضافه کنید
+        3. برای هر لایه:
+           - تصویر را آپلود کنید
+           - موقعیت و اندازه را تنظیم کنید
+           - شفافیت را تنظیم کنید
+        4. متن فارسی را وارد کنید
+        5. دکمه ساخت تصویر را بزنید
         
-        # محاسبه موقعیت‌های واقعی بر اساس درصد
-        template_width, template_height = template.size
-        min_dimension = min(template_width, template_height)
-        
-        # محاسبه سایز فونت بر اساس درصد ارتفاع
-        font_size = int(template_height * (font_size_percent / 100))
-        
-        # محاسبه سایز تصویر بر اساس درصد کوچکترین بعد
-        img_size = int(min_dimension * (img_size_percent / 100))
-        
-        # محاسبه موقعیت تصویر
-        if image_file:
-            uploaded_image = Image.open(image_file)
-            # تبدیل به RGBA اگر PNG است
-            if uploaded_image.mode != 'RGBA':
-                uploaded_image = uploaded_image.convert('RGBA')
-            uploaded_image = uploaded_image.resize((img_size, img_size))
-            
-            # محاسبه موقعیت مرکز تصویر
-            img_x = int((template_width - img_size) * (img_x_percent / 100))
-            img_y = int((template_height - img_size) * (img_y_percent / 100))
-            
-            # استفاده از alpha channel برای paste
-            preview_image.paste(uploaded_image, (img_x, img_y), uploaded_image)
-        
-        # اضافه کردن متن به پیش‌نمایش
-        if text:
-            # آماده‌سازی متن فارسی
-            reshaped_text = arabic_reshaper.reshape(text)
-            bidi_text = get_display(reshaped_text)
-            
-            # اضافه کردن متن
+        ### نکات مهم:
+        - از فونت وزیر برای نمایش متن فارسی استفاده می‌شود
+        - می‌توانید ترتیب لایه‌ها را تغییر دهید
+        - هر لایه را می‌توانید فعال یا غیرفعال کنید
+        - تصویر نهایی در فایل output.png ذخیره می‌شود
+        """)
+    
+    with tab2:
+        st.header("پیش‌نمایش")
+        if template_file and (st.session_state.layers or text):
             try:
-                font = ImageFont.truetype(FONT_PATH, font_size)
-                # محاسبه اندازه متن
-                text_bbox = draw.textbbox((0, 0), bidi_text, font=font)
-                text_width = text_bbox[2] - text_bbox[0]
-                text_height = text_bbox[3] - text_bbox[1]
+                # باز کردن تمپلیت
+                template = Image.open(template_file)
+                preview_image = template.copy()
+                draw = ImageDraw.Draw(preview_image)
                 
-                # محاسبه موقعیت مرکز متن
-                text_x = int((template_width - text_width) * (text_x_percent / 100))
-                text_y = int((template_height - text_height) * (text_y_percent / 100))
+                # محاسبه ابعاد تصویر
+                template_width, template_height = template.size
+                min_dimension = min(template_width, template_height)
                 
-                draw.text((text_x, text_y), bidi_text, font=font, fill=text_color)
+                # اضافه کردن لایه‌ها
+                for layer in st.session_state.layers:
+                    if layer.visible and layer.image:
+                        # محاسبه سایز تصویر بر اساس درصد کوچکترین بعد
+                        img_size = int(min_dimension * (layer.size_percent / 100))
+                        
+                        # تغییر سایز تصویر لایه
+                        layer_image = layer.image.resize((img_size, img_size))
+                        
+                        # تبدیل به RGBA اگر PNG است
+                        if layer_image.mode != 'RGBA':
+                            layer_image = layer_image.convert('RGBA')
+                        
+                        # اعمال شفافیت
+                        if layer.opacity < 100:
+                            layer_image.putalpha(int(255 * layer.opacity / 100))
+                        
+                        # محاسبه موقعیت مرکز تصویر
+                        img_x = int((template_width - img_size) * (layer.x_percent / 100))
+                        img_y = int((template_height - img_size) * (layer.y_percent / 100))
+                        
+                        # اضافه کردن تصویر به پیش‌نمایش
+                        preview_image.paste(layer_image, (img_x, img_y), layer_image)
+                
+                # اضافه کردن متن به پیش‌نمایش
+                if text:
+                    # آماده‌سازی متن فارسی
+                    reshaped_text = arabic_reshaper.reshape(text)
+                    bidi_text = get_display(reshaped_text)
+                    
+                    # محاسبه سایز فونت بر اساس درصد ارتفاع
+                    font_size = int(template_height * (font_size_percent / 100))
+                    
+                    try:
+                        font = ImageFont.truetype(FONT_PATH, font_size)
+                        # محاسبه اندازه متن
+                        text_bbox = draw.textbbox((0, 0), bidi_text, font=font)
+                        text_width = text_bbox[2] - text_bbox[0]
+                        text_height = text_bbox[3] - text_bbox[1]
+                        
+                        # محاسبه موقعیت مرکز متن
+                        text_x = int((template_width - text_width) * (text_x_percent / 100))
+                        text_y = int((template_height - text_height) * (text_y_percent / 100))
+                        
+                        draw.text((text_x, text_y), bidi_text, font=font, fill=text_color)
+                    except Exception as e:
+                        st.error(f"خطا در بارگذاری فونت: {str(e)}")
+                        font = ImageFont.load_default()
+                        draw.text((text_x, text_y), bidi_text, font=font, fill=text_color)
+                
+                # نمایش پیش‌نمایش با سایز محدود شده
+                st.image(preview_image, caption=f"پیش‌نمایش ({template_width}x{template_height})", use_column_width=True)
+                
             except Exception as e:
-                st.error(f"خطا در بارگذاری فونت: {str(e)}")
-                font = ImageFont.load_default()
-                draw.text((text_x, text_y), bidi_text, font=font, fill=text_color)
+                st.error(f"خطا در پیش‌نمایش: {str(e)}")
+                st.error("جزئیات خطا:")
+                st.code(traceback.format_exc())
+        else:
+            st.info("👆 برای مشاهده پیش‌نمایش، ابتدا یک تمپلیت آپلود کنید و حداقل یک لایه یا متن اضافه کنید.")
+    
+    # نمایش اطلاعات کاربر و دکمه خروج
+    st.markdown("---")
+    st.markdown(f"👤 کاربر: {st.session_state.username}")
+    if st.button("🚪 خروج"):
+        logout()
+
+# مدیریت لایه‌ها
+st.markdown('<p class="upload-header">2️⃣ مدیریت لایه‌ها</p>', unsafe_allow_html=True)
+
+# دکمه افزودن لایه جدید
+if st.button("➕ افزودن لایه جدید"):
+    new_layer = Layer(f"لایه {len(st.session_state.layers) + 1}")
+    st.session_state.layers.append(new_layer)
+
+# نمایش لایه‌ها
+for i, layer in enumerate(st.session_state.layers):
+    with st.container():
+        st.markdown(f"### 🖼️ {layer.name}")
         
-        # نمایش پیش‌نمایش با سایز محدود شده
-        st.image(preview_image, caption="پیش‌نمایش نهایی", width=300)
+        # آپلود تصویر برای لایه
+        uploaded_file = st.file_uploader(
+            "تصویر را انتخاب کنید",
+            type=["png", "jpg", "jpeg"],
+            key=f"layer_{i}_upload",
+            help="تصویری که می‌خواهید در این لایه قرار دهید را آپلود کنید"
+        )
         
-    except Exception as e:
-        st.error(f"خطا در پیش‌نمایش: {str(e)}")
-        st.error("جزئیات خطا:")
-        st.code(traceback.format_exc())
-    st.markdown('</div>', unsafe_allow_html=True)
+        if uploaded_file:
+            try:
+                layer.image = Image.open(uploaded_file)
+                st.image(layer.image, caption="پیش‌نمایش تصویر", width=200)
+            except Exception as e:
+                st.error(f"خطا در بارگذاری تصویر: {str(e)}")
+        
+        # تنظیمات لایه
+        col1, col2 = st.columns(2)
+        with col1:
+            layer.x_percent = st.slider(
+                "موقعیت افقی (%)",
+                0, 100, layer.x_percent,
+                key=f"layer_{i}_x",
+                help="0: چپ، 50: وسط، 100: راست"
+            )
+            layer.size_percent = st.slider(
+                "اندازه (%)",
+                10, 100, layer.size_percent,
+                key=f"layer_{i}_size",
+                help="سایز تصویر به صورت درصدی از کوچکترین بعد تمپلیت"
+            )
+        
+        with col2:
+            layer.y_percent = st.slider(
+                "موقعیت عمودی (%)",
+                0, 100, layer.y_percent,
+                key=f"layer_{i}_y",
+                help="0: بالا، 50: وسط، 100: پایین"
+            )
+            layer.opacity = st.slider(
+                "شفافیت (%)",
+                0, 100, layer.opacity,
+                key=f"layer_{i}_opacity",
+                help="شفافیت تصویر (0: کاملاً شفاف، 100: کاملاً مات)"
+            )
+        
+        # کنترل‌های لایه
+        col1, col2 = st.columns(2)
+        with col1:
+            layer.visible = st.checkbox(
+                "نمایش لایه",
+                value=layer.visible,
+                key=f"layer_{i}_visible"
+            )
+        with col2:
+            if st.button("🗑️ حذف لایه", key=f"layer_{i}_delete"):
+                st.session_state.layers.pop(i)
+                st.rerun()
+        
+        st.markdown("---")
 
 # دکمه ساخت تصویر
 st.markdown("---")
 if st.button("🎨 ساخت تصویر"):
-    if template_file and (image_file or text):
+    if template_file and (st.session_state.layers or text):
         try:
             # باز کردن تمپلیت
             template = Image.open(template_file)
@@ -463,32 +387,38 @@ if st.button("🎨 ساخت تصویر"):
             template_width, template_height = template.size
             min_dimension = min(template_width, template_height)
             
-            # محاسبه سایز فونت بر اساس درصد ارتفاع
-            font_size = int(template_height * (font_size_percent / 100))
-            
-            # محاسبه سایز تصویر بر اساس درصد کوچکترین بعد
-            img_size = int(min_dimension * (img_size_percent / 100))
-            
-            # اضافه کردن تصویر به تمپلیت
-            if image_file:
-                uploaded_image = Image.open(image_file)
-                # تبدیل به RGBA اگر PNG است
-                if uploaded_image.mode != 'RGBA':
-                    uploaded_image = uploaded_image.convert('RGBA')
-                uploaded_image = uploaded_image.resize((img_size, img_size))
-                
-                # محاسبه موقعیت مرکز تصویر
-                img_x = int((template_width - img_size) * (img_x_percent / 100))
-                img_y = int((template_height - img_size) * (img_y_percent / 100))
-                
-                # استفاده از alpha channel برای paste
-                final_image.paste(uploaded_image, (img_x, img_y), uploaded_image)
+            # اضافه کردن لایه‌ها
+            for layer in st.session_state.layers:
+                if layer.visible and layer.image:
+                    # محاسبه سایز تصویر بر اساس درصد کوچکترین بعد
+                    img_size = int(min_dimension * (layer.size_percent / 100))
+                    
+                    # تغییر سایز تصویر لایه
+                    layer_image = layer.image.resize((img_size, img_size))
+                    
+                    # تبدیل به RGBA اگر PNG است
+                    if layer_image.mode != 'RGBA':
+                        layer_image = layer_image.convert('RGBA')
+                    
+                    # اعمال شفافیت
+                    if layer.opacity < 100:
+                        layer_image.putalpha(int(255 * layer.opacity / 100))
+                    
+                    # محاسبه موقعیت مرکز تصویر
+                    img_x = int((template_width - img_size) * (layer.x_percent / 100))
+                    img_y = int((template_height - img_size) * (layer.y_percent / 100))
+                    
+                    # اضافه کردن تصویر به تصویر نهایی
+                    final_image.paste(layer_image, (img_x, img_y), layer_image)
             
             # اضافه کردن متن به تصویر
             if text:
                 # آماده‌سازی متن فارسی
                 reshaped_text = arabic_reshaper.reshape(text)
                 bidi_text = get_display(reshaped_text)
+                
+                # محاسبه سایز فونت بر اساس درصد ارتفاع
+                font_size = int(template_height * (font_size_percent / 100))
                 
                 try:
                     # استفاده از فونت وزیر
@@ -531,22 +461,4 @@ if st.button("🎨 ساخت تصویر"):
             st.error("جزئیات خطا:")
             st.code(traceback.format_exc())
     else:
-        st.error("❌ لطفاً حداقل یک تصویر یا متن وارد کنید!")
-
-# اضافه کردن JavaScript برای دریافت مختصات کلیک
-st.markdown("""
-<script>
-const img = document.querySelector('img[alt="روی تمپلیت کلیک کنید"]');
-if (img) {
-    img.addEventListener('click', function(e) {
-        const rect = img.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        window.parent.postMessage({
-            type: 'streamlit:setComponentValue',
-            value: {x: x, y: y}
-        }, '*');
-    });
-}
-</script>
-""", unsafe_allow_html=True) 
+        st.error("❌ لطفاً حداقل یک لایه یا متن وارد کنید!") 

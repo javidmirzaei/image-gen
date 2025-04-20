@@ -1,9 +1,14 @@
+# Database
+*.db
+users.db
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+env/
 build/
 develop-eggs/
 dist/
@@ -23,7 +28,6 @@ wheels/
 # Virtual Environment
 venv/
 ENV/
-env/
 
 # IDE
 .idea/
@@ -31,7 +35,22 @@ env/
 *.swp
 *.swo
 
-# Project specific
-output.png
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
 *.log
-.DS_Store 
+
+# Local development settings
+.env
+.env.local
+.env.*.local
+
+# Generated files
+output.png 
