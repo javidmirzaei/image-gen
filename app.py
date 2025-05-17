@@ -265,8 +265,8 @@ class Layer:
         self.name = name
         self.image = image
         self.x_percent = 50
-        self.y_percent = 50
-        self.size_percent = 30
+        self.y_percent = 0
+        self.size_percent = 100
         self.opacity = 100
         self.visible = True
         self.image_key = None  # کلید یکتا برای هر تصویر
@@ -293,7 +293,7 @@ if 'text' not in st.session_state:
 
 # برای ذخیره تنظیمات متن
 if 'font_size_percent' not in st.session_state:
-    st.session_state.font_size_percent = 5
+    st.session_state.font_size_percent = 4
 if 'text_color' not in st.session_state:
     st.session_state.text_color = "#000000"
 if 'is_bold' not in st.session_state:
@@ -899,9 +899,12 @@ else:
                                 """, unsafe_allow_html=True)
                                 
                                 # دکمه نامرئی که روی رنگ قرار می‌گیرد
-                                if st.button("انتخاب", key=st_key, help=f"انتخاب رنگ {color['name']}", use_container_width=True):
-                                    st.session_state.text_color = color['value']
-                                    st.rerun()
+                                # تابع تغییر رنگ بدون rerun
+                                def change_color(color_value=color['value']):
+                                    st.session_state.text_color = color_value
+                                
+                                if st.button("انتخاب", key=st_key, help=f"انتخاب رنگ {color['name']}", use_container_width=True, on_click=change_color):
+                                    pass  # عملیات دیگری مورد نیاز نیست
                                 
                                 # CSS برای پوشاندن دکمه روی رنگ
                                 st.markdown(f"""
