@@ -301,7 +301,7 @@ if 'is_bold' not in st.session_state:
 if 'text_x_percent' not in st.session_state:
     st.session_state.text_x_percent = 50
 if 'text_y_percent' not in st.session_state:
-    st.session_state.text_y_percent = 50
+    st.session_state.text_y_percent = 98
 if 'max_text_width_percent' not in st.session_state:
     st.session_state.max_text_width_percent = 80
 if 'line_spacing_percent' not in st.session_state:
@@ -558,21 +558,35 @@ else:
                 try:
                     # باز کردن تمپلیت
                     template = Image.open(template_path)
-                    preview_image = template.copy()
-                    draw = ImageDraw.Draw(preview_image)
                     
                     # محاسبه ابعاد تصویر
                     template_width, template_height = template.size
                     min_dimension = min(template_width, template_height)
                     
-                    # اضافه کردن لایه‌ها
+                    # ایجاد یک تصویر پایه خالی (سفید)
+                    preview_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 255))
+                    draw = ImageDraw.Draw(preview_image)
+                    
+                    # اضافه کردن لایه‌ها به زمینه سفید
                     for layer in st.session_state.layers:
                         if layer.visible and layer.image:
-                            # محاسبه سایز تصویر بر اساس درصد کوچکترین بعد
-                            img_size = int(min_dimension * (layer.size_percent / 100))
+                            # محاسبه سایز تصویر بر اساس درصد کوچکترین بعد تمپلیت
+                            # مقادیر بزرگتر از 100% باعث می‌شود تصویر بزرگتر از حالت اصلی شود
+                            max_dimension = int(min_dimension * (layer.size_percent / 100))
                             
-                            # تغییر سایز تصویر لایه
-                            layer_image = layer.image.resize((img_size, img_size))
+                            # تغییر سایز تصویر لایه با حفظ نسبت تصویر
+                            original_width, original_height = layer.image.size
+                            aspect_ratio = original_width / original_height
+                            
+                            if aspect_ratio >= 1:  # عرض بزرگتر یا مساوی ارتفاع است
+                                new_width = max_dimension
+                                new_height = int(max_dimension / aspect_ratio)
+                            else:  # ارتفاع بزرگتر از عرض است
+                                new_height = max_dimension
+                                new_width = int(max_dimension * aspect_ratio)
+                            
+                            # حتی اگر مقیاس بزرگتر از 100% باشد، تغییر سایز انجام می‌شود (بزرگنمایی)
+                            layer_image = layer.image.resize((new_width, new_height), Image.LANCZOS)
                             
                             # تبدیل به RGBA اگر PNG است
                             if layer_image.mode != 'RGBA':
@@ -583,13 +597,22 @@ else:
                                 layer_image.putalpha(int(255 * layer.opacity / 100))
                             
                             # محاسبه موقعیت مرکز تصویر
-                            img_x = int((template_width - img_size) * (layer.x_percent / 100))
-                            img_y = int((template_height - img_size) * (layer.y_percent / 100))
+                            img_x = int((template_width - new_width) * (layer.x_percent / 100))
+                            img_y = int((template_height - new_height) * (layer.y_percent / 100))
                             
                             # اضافه کردن تصویر به پیش‌نمایش
                             preview_image.paste(layer_image, (img_x, img_y), layer_image)
                     
-                    # اضافه کردن متن به پیش‌نمایش
+                    # اضافه کردن تمپلیت به عنوان لایه بالایی (بالاتر از لایه‌های تصویر)
+                    if template.mode == 'RGBA':
+                        # اگر تمپلیت شفافیت داشته باشد، با حفظ شفافیت روی تصویر قرار می‌گیرد
+                        preview_image = Image.alpha_composite(preview_image, template)
+                    else:
+                        # تبدیل تمپلیت به RGBA
+                        template_rgba = template.convert('RGBA')
+                        preview_image = Image.alpha_composite(preview_image, template_rgba)
+                    
+                    # اضافه کردن متن به عنوان بالاترین لایه (روی همه چیز، حتی تمپلیت)
                     if st.session_state.text:
                         # آماده‌سازی متن فارسی
                         reshaped_text = arabic_reshaper.reshape(st.session_state.text)
@@ -603,11 +626,15 @@ else:
                             font_path = FONT_BOLD_PATH if st.session_state.is_bold else FONT_PATH
                             font = ImageFont.truetype(font_path, font_size)
                             
+                            # ایجاد یک تصویر شفاف برای متن
+                            text_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 0))
+                            text_draw = ImageDraw.Draw(text_image)
+                            
                             # محاسبه حداکثر عرض متن
                             max_width = template_width * (st.session_state.max_text_width_percent / 100)
                             
                             # شکستن متن به خطوط
-                            lines = wrap_text_to_lines(draw, bidi_text, font, max_width)
+                            lines = wrap_text_to_lines(text_draw, bidi_text, font, max_width)
                             
                             # محاسبه ارتفاع کل متن
                             # فاصله بین خطوط را به درصدی از ارتفاع فونت تنظیم می‌کنیم
@@ -615,15 +642,21 @@ else:
                             line_height = int(font_size * line_spacing_factor)
                             total_text_height = line_height * len(lines)
                             
-                            # محاسبه موقعیت شروع متن
+                            # محاسبه موقعیت شروع متن - نسبت به ابعاد تمپلیت
+                            # برای موقعیت افقی (x): 0% یعنی چپ، 50% یعنی وسط و 100% یعنی راست تمپلیت
+                            # برای موقعیت عمودی (y): 0% یعنی بالا، 50% یعنی وسط و 100% یعنی پایین تمپلیت
                             start_y = int((template_height - total_text_height) * (st.session_state.text_y_percent / 100))
                             
-                            # رسم هر خط متن
+                            # رسم هر خط متن روی تصویر شفاف
                             for i, line in enumerate(lines):
-                                line_width = draw.textlength(line, font=font)
+                                line_width = text_draw.textlength(line, font=font)
+                                # محاسبه موقعیت افقی متن نسبت به عرض تمپلیت
                                 line_x = int((template_width - line_width) * (st.session_state.text_x_percent / 100))
                                 line_y = start_y + i * line_height
-                                draw.text((line_x, line_y), line, font=font, fill=st.session_state.text_color)
+                                text_draw.text((line_x, line_y), line, font=font, fill=st.session_state.text_color)
+                            
+                            # ترکیب تصویر متن با تصویر اصلی
+                            preview_image = Image.alpha_composite(preview_image, text_image)
                         except Exception as e:
                             st.error(f"خطا در بارگذاری فونت: {str(e)}")
                             # استفاده از فونت پیش‌فرض در صورت خطا
@@ -634,8 +667,24 @@ else:
                     # نمایش پیش‌نمایش با سایز محدود شده
                     st.image(preview_image, caption=f"پیش‌نمایش ({template_width}x{template_height})", use_column_width=True)
                     
+                    # ذخیره تصویر با سایز اصلی
+                    final_image = preview_image.copy()
+                    final_image.save("output.png", quality=100)
+                    
+                    # ایجاد دکمه دانلود
+                    with open("output.png", "rb") as file:
+                        btn = st.download_button(
+                            label="⬇️ دانلود تصویر",
+                            data=file,
+                            file_name="output.png",
+                            mime="image/png",
+                            key="sidebar_download_btn"
+                        )
+                    
+                    st.success(f"✅ تصویر با موفقیت ساخته شد! (سایز: {template_width}x{template_height})")
+                    
                 except Exception as e:
-                    st.error(f"خطا در پیش‌نمایش: {str(e)}")
+                    st.error(f"❌ خطا در ساخت تصویر: {str(e)}")
                     st.error("جزئیات خطا:")
                     st.code(traceback.format_exc())
             else:
@@ -735,9 +784,9 @@ else:
                     )
                     new_size = st.slider(
                         "اندازه (%)",
-                        10, 100, layer.size_percent,
+                        10, 300, layer.size_percent,
                         key=f"layer_{i}_size",
-                        help="سایز تصویر به صورت درصدی از کوچکترین بعد تمپلیت"
+                        help="سایز تصویر به صورت درصدی از کوچکترین بعد تمپلیت (مقادیر بزرگتر از 100% تصویر را بزرگتر از حالت اصلی نمایش می‌دهند)"
                     )
                     
                     # بروزرسانی مقادیر و رفرش صفحه
@@ -876,9 +925,9 @@ else:
                 st.session_state.is_bold = st.session_state.is_bold_checkbox
 
         with text_col2:
-            text_x = st.slider("موقعیت افقی متن (%)", 0, 100, st.session_state.text_x_percent, key="text_x_slider", help="0: چپ، 50: وسط، 100: راست", on_change=lambda: st.session_state.update({"text_x_percent": st.session_state.text_x_slider}))
-            text_y = st.slider("موقعیت عمودی متن (%)", 0, 100, st.session_state.text_y_percent, key="text_y_slider", help="0: بالا، 50: وسط، 100: پایین", on_change=lambda: st.session_state.update({"text_y_percent": st.session_state.text_y_slider}))
-            max_text_width = st.slider("عرض متن (%)", 10, 100, st.session_state.max_text_width_percent, key="max_text_width_slider", help="حداکثر عرض متن به صورت درصدی از عرض تصویر", on_change=lambda: st.session_state.update({"max_text_width_percent": st.session_state.max_text_width_slider}))
+            text_x = st.slider("موقعیت افقی متن (%)", 0, 100, st.session_state.text_x_percent, key="text_x_slider", help="0: کاملاً چپ تمپلیت، 50: وسط تمپلیت، 100: کاملاً راست تمپلیت", on_change=lambda: st.session_state.update({"text_x_percent": st.session_state.text_x_slider}))
+            text_y = st.slider("موقعیت عمودی متن (%)", 0, 100, st.session_state.text_y_percent, key="text_y_slider", help="0: کاملاً بالای تمپلیت، 50: وسط تمپلیت، 100: کاملاً پایین تمپلیت", on_change=lambda: st.session_state.update({"text_y_percent": st.session_state.text_y_slider}))
+            max_text_width = st.slider("عرض متن (%)", 10, 100, st.session_state.max_text_width_percent, key="max_text_width_slider", help="حداکثر عرض متن به صورت درصدی از عرض تمپلیت", on_change=lambda: st.session_state.update({"max_text_width_percent": st.session_state.max_text_width_slider}))
             line_spacing = st.slider("فاصله خطوط (%)", 100, 200, st.session_state.line_spacing_percent, key="line_spacing_slider", help="فاصله بین خطوط متن به صورت درصدی از ارتفاع خط", on_change=lambda: st.session_state.update({"line_spacing_percent": st.session_state.line_spacing_slider}))
 
         # دکمه ساخت تصویر
@@ -896,22 +945,34 @@ else:
                     # باز کردن تمپلیت
                     template = Image.open(template_path)
                     
-                    # ایجاد یک کپی از تمپلیت برای ویرایش
-                    final_image = template.copy()
-                    draw = ImageDraw.Draw(final_image)
-                    
                     # محاسبه ابعاد تصویر
                     template_width, template_height = template.size
                     min_dimension = min(template_width, template_height)
                     
-                    # اضافه کردن لایه‌ها
+                    # ایجاد یک تصویر پایه خالی (سفید)
+                    preview_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 255))
+                    draw = ImageDraw.Draw(preview_image)
+                    
+                    # اضافه کردن لایه‌ها به زمینه سفید
                     for layer in st.session_state.layers:
                         if layer.visible and layer.image:
-                            # محاسبه سایز تصویر بر اساس درصد کوچکترین بعد
-                            img_size = int(min_dimension * (layer.size_percent / 100))
+                            # محاسبه سایز تصویر بر اساس درصد کوچکترین بعد تمپلیت
+                            # مقادیر بزرگتر از 100% باعث می‌شود تصویر بزرگتر از حالت اصلی شود
+                            max_dimension = int(min_dimension * (layer.size_percent / 100))
                             
-                            # تغییر سایز تصویر لایه
-                            layer_image = layer.image.resize((img_size, img_size))
+                            # تغییر سایز تصویر لایه با حفظ نسبت تصویر
+                            original_width, original_height = layer.image.size
+                            aspect_ratio = original_width / original_height
+                            
+                            if aspect_ratio >= 1:  # عرض بزرگتر یا مساوی ارتفاع است
+                                new_width = max_dimension
+                                new_height = int(max_dimension / aspect_ratio)
+                            else:  # ارتفاع بزرگتر از عرض است
+                                new_height = max_dimension
+                                new_width = int(max_dimension * aspect_ratio)
+                            
+                            # حتی اگر مقیاس بزرگتر از 100% باشد، تغییر سایز انجام می‌شود (بزرگنمایی)
+                            layer_image = layer.image.resize((new_width, new_height), Image.LANCZOS)
                             
                             # تبدیل به RGBA اگر PNG است
                             if layer_image.mode != 'RGBA':
@@ -922,13 +983,22 @@ else:
                                 layer_image.putalpha(int(255 * layer.opacity / 100))
                             
                             # محاسبه موقعیت مرکز تصویر
-                            img_x = int((template_width - img_size) * (layer.x_percent / 100))
-                            img_y = int((template_height - img_size) * (layer.y_percent / 100))
+                            img_x = int((template_width - new_width) * (layer.x_percent / 100))
+                            img_y = int((template_height - new_height) * (layer.y_percent / 100))
                             
-                            # اضافه کردن تصویر به تصویر نهایی
-                            final_image.paste(layer_image, (img_x, img_y), layer_image)
+                            # اضافه کردن تصویر به پیش‌نمایش
+                            preview_image.paste(layer_image, (img_x, img_y), layer_image)
                     
-                    # اضافه کردن متن به تصویر
+                    # اضافه کردن تمپلیت به عنوان لایه بالایی (بالاتر از لایه‌های تصویر)
+                    if template.mode == 'RGBA':
+                        # اگر تمپلیت شفافیت داشته باشد، با حفظ شفافیت روی تصویر قرار می‌گیرد
+                        preview_image = Image.alpha_composite(preview_image, template)
+                    else:
+                        # تبدیل تمپلیت به RGBA
+                        template_rgba = template.convert('RGBA')
+                        preview_image = Image.alpha_composite(preview_image, template_rgba)
+                    
+                    # اضافه کردن متن به عنوان بالاترین لایه (روی همه چیز، حتی تمپلیت)
                     if st.session_state.text:
                         # آماده‌سازی متن فارسی
                         reshaped_text = arabic_reshaper.reshape(st.session_state.text)
@@ -942,11 +1012,15 @@ else:
                             font_path = FONT_BOLD_PATH if st.session_state.is_bold else FONT_PATH
                             font = ImageFont.truetype(font_path, font_size)
                             
+                            # ایجاد یک تصویر شفاف برای متن
+                            text_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 0))
+                            text_draw = ImageDraw.Draw(text_image)
+                            
                             # محاسبه حداکثر عرض متن
                             max_width = template_width * (st.session_state.max_text_width_percent / 100)
                             
                             # شکستن متن به خطوط
-                            lines = wrap_text_to_lines(draw, bidi_text, font, max_width)
+                            lines = wrap_text_to_lines(text_draw, bidi_text, font, max_width)
                             
                             # محاسبه ارتفاع کل متن
                             # فاصله بین خطوط را به درصدی از ارتفاع فونت تنظیم می‌کنیم
@@ -954,15 +1028,21 @@ else:
                             line_height = int(font_size * line_spacing_factor)
                             total_text_height = line_height * len(lines)
                             
-                            # محاسبه موقعیت شروع متن
+                            # محاسبه موقعیت شروع متن - نسبت به ابعاد تمپلیت
+                            # برای موقعیت افقی (x): 0% یعنی چپ، 50% یعنی وسط و 100% یعنی راست تمپلیت
+                            # برای موقعیت عمودی (y): 0% یعنی بالا، 50% یعنی وسط و 100% یعنی پایین تمپلیت
                             start_y = int((template_height - total_text_height) * (st.session_state.text_y_percent / 100))
                             
-                            # رسم هر خط متن
+                            # رسم هر خط متن روی تصویر شفاف
                             for i, line in enumerate(lines):
-                                line_width = draw.textlength(line, font=font)
+                                line_width = text_draw.textlength(line, font=font)
+                                # محاسبه موقعیت افقی متن نسبت به عرض تمپلیت
                                 line_x = int((template_width - line_width) * (st.session_state.text_x_percent / 100))
                                 line_y = start_y + i * line_height
-                                draw.text((line_x, line_y), line, font=font, fill=st.session_state.text_color)
+                                text_draw.text((line_x, line_y), line, font=font, fill=st.session_state.text_color)
+                            
+                            # ترکیب تصویر متن با تصویر اصلی
+                            preview_image = Image.alpha_composite(preview_image, text_image)
                         except Exception as e:
                             st.error(f"خطا در بارگذاری فونت: {str(e)}")
                             # استفاده از فونت پیش‌فرض در صورت خطا
@@ -970,10 +1050,11 @@ else:
                             st.warning("از فونت پیش‌فرض استفاده شد. متن چندخطی با این فونت پشتیبانی نمی‌شود.")
                             draw.text((10, 10), bidi_text, font=font, fill=st.session_state.text_color)
                     
-                    # نمایش تصویر نهایی با سایز محدود شده برای پیش‌نمایش
-                    st.image(final_image, caption=f"تصویر نهایی ({template_width}x{template_height})", width=300)
+                    # نمایش پیش‌نمایش با سایز محدود شده
+                    st.image(preview_image, caption=f"پیش‌نمایش ({template_width}x{template_height})", use_column_width=True)
                     
                     # ذخیره تصویر با سایز اصلی
+                    final_image = preview_image.copy()
                     final_image.save("output.png", quality=100)
                     
                     # ایجاد دکمه دانلود
@@ -982,7 +1063,8 @@ else:
                             label="⬇️ دانلود تصویر",
                             data=file,
                             file_name="output.png",
-                            mime="image/png"
+                            mime="image/png",
+                            key="main_download_btn"
                         )
                     
                     st.success(f"✅ تصویر با موفقیت ساخته شد! (سایز: {template_width}x{template_height})")
