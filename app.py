@@ -664,7 +664,7 @@ else:
                             st.warning("از فونت پیش‌فرض استفاده شد. متن چندخطی با این فونت پشتیبانی نمی‌شود.")
                             draw.text((10, 10), bidi_text, font=font, fill=st.session_state.text_color)
                     
-                    # نمایش پیش‌نمایش با سایز محدود شده
+                    # نمایش تصویر با سایز محدود شده
                     st.image(preview_image, caption=f"پیش‌نمایش ({template_width}x{template_height})", use_column_width=True)
                     
                     # ذخیره تصویر با سایز اصلی
@@ -1050,8 +1050,8 @@ else:
                             st.warning("از فونت پیش‌فرض استفاده شد. متن چندخطی با این فونت پشتیبانی نمی‌شود.")
                             draw.text((10, 10), bidi_text, font=font, fill=st.session_state.text_color)
                     
-                    # نمایش پیش‌نمایش با سایز محدود شده
-                    st.image(preview_image, caption=f"پیش‌نمایش ({template_width}x{template_height})", use_column_width=True)
+                    # نمایش تصویر با سایز محدود شده
+                    st.image(preview_image, caption=f"پیش‌نمایش ({template_width}x{template_height})", width=300)
                     
                     # ذخیره تصویر با سایز اصلی
                     final_image = preview_image.copy()
