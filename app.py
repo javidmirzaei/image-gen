@@ -9,6 +9,29 @@ from auth import init_auth, logout
 import shutil
 import glob
 
+# تابع کمکی برای شکستن متن به چند خط
+def wrap_text_to_lines(draw, text, font, max_width):
+    """
+    متن را با توجه به عرض ماکزیمم به چند خط می‌شکند
+    """
+    words = text.split(' ')
+    lines = []
+    current_line = words[0]
+    
+    for word in words[1:]:
+        test_line = current_line + ' ' + word
+        test_width = draw.textlength(test_line, font=font)
+        if test_width <= max_width:
+            current_line = test_line
+        else:
+            lines.append(current_line)
+            current_line = word
+    
+    if current_line:
+        lines.append(current_line)
+    
+    return lines
+
 # تنظیمات اولیه صفحه
 st.set_page_config(
     page_title="تصویرساز فارسی",
@@ -210,6 +233,10 @@ if 'text_x_percent' not in st.session_state:
     st.session_state.text_x_percent = 50
 if 'text_y_percent' not in st.session_state:
     st.session_state.text_y_percent = 50
+if 'max_text_width_percent' not in st.session_state:
+    st.session_state.max_text_width_percent = 80
+if 'line_spacing_percent' not in st.session_state:
+    st.session_state.line_spacing_percent = 120
 
 # عنوان اصلی
 st.title("🎨 تصویرساز فارسی")
@@ -392,20 +419,34 @@ with st.sidebar:
                         # انتخاب فونت مناسب بر اساس وضعیت بولد
                         font_path = FONT_BOLD_PATH if st.session_state.is_bold else FONT_PATH
                         font = ImageFont.truetype(font_path, font_size)
-                        # محاسبه اندازه متن
-                        text_bbox = draw.textbbox((0, 0), bidi_text, font=font)
-                        text_width = text_bbox[2] - text_bbox[0]
-                        text_height = text_bbox[3] - text_bbox[1]
                         
-                        # محاسبه موقعیت مرکز متن
-                        text_x = int((template_width - text_width) * (st.session_state.text_x_percent / 100))
-                        text_y = int((template_height - text_height) * (st.session_state.text_y_percent / 100))
+                        # محاسبه حداکثر عرض متن
+                        max_width = template_width * (st.session_state.max_text_width_percent / 100)
                         
-                        draw.text((text_x, text_y), bidi_text, font=font, fill=st.session_state.text_color)
+                        # شکستن متن به خطوط
+                        lines = wrap_text_to_lines(draw, bidi_text, font, max_width)
+                        
+                        # محاسبه ارتفاع کل متن
+                        # فاصله بین خطوط را به درصدی از ارتفاع فونت تنظیم می‌کنیم
+                        line_spacing_factor = st.session_state.line_spacing_percent / 100
+                        line_height = int(font_size * line_spacing_factor)
+                        total_text_height = line_height * len(lines)
+                        
+                        # محاسبه موقعیت شروع متن
+                        start_y = int((template_height - total_text_height) * (st.session_state.text_y_percent / 100))
+                        
+                        # رسم هر خط متن
+                        for i, line in enumerate(lines):
+                            line_width = draw.textlength(line, font=font)
+                            line_x = int((template_width - line_width) * (st.session_state.text_x_percent / 100))
+                            line_y = start_y + i * line_height
+                            draw.text((line_x, line_y), line, font=font, fill=st.session_state.text_color)
                     except Exception as e:
                         st.error(f"خطا در بارگذاری فونت: {str(e)}")
+                        # استفاده از فونت پیش‌فرض در صورت خطا
                         font = ImageFont.load_default()
-                        draw.text((text_x, text_y), bidi_text, font=font, fill=st.session_state.text_color)
+                        st.warning("از فونت پیش‌فرض استفاده شد. متن چندخطی با این فونت پشتیبانی نمی‌شود.")
+                        draw.text((10, 10), bidi_text, font=font, fill=st.session_state.text_color)
                 
                 # نمایش پیش‌نمایش با سایز محدود شده
                 st.image(preview_image, caption=f"پیش‌نمایش ({template_width}x{template_height})", use_column_width=True)
@@ -551,6 +592,8 @@ if st.session_state.selected_template_path or st.session_state.template_file:
     with text_col2:
         text_x = st.slider("موقعیت افقی متن (%)", 0, 100, st.session_state.text_x_percent, key="text_x_slider", help="0: چپ، 50: وسط، 100: راست", on_change=lambda: st.session_state.update({"text_x_percent": st.session_state.text_x_slider}))
         text_y = st.slider("موقعیت عمودی متن (%)", 0, 100, st.session_state.text_y_percent, key="text_y_slider", help="0: بالا، 50: وسط، 100: پایین", on_change=lambda: st.session_state.update({"text_y_percent": st.session_state.text_y_slider}))
+        max_text_width = st.slider("عرض متن (%)", 10, 100, st.session_state.max_text_width_percent, key="max_text_width_slider", help="حداکثر عرض متن به صورت درصدی از عرض تصویر", on_change=lambda: st.session_state.update({"max_text_width_percent": st.session_state.max_text_width_slider}))
+        line_spacing = st.slider("فاصله خطوط (%)", 100, 200, st.session_state.line_spacing_percent, key="line_spacing_slider", help="فاصله بین خطوط متن به صورت درصدی از ارتفاع خط", on_change=lambda: st.session_state.update({"line_spacing_percent": st.session_state.line_spacing_slider}))
 
     # دکمه ساخت تصویر
     st.markdown("---")
@@ -612,21 +655,34 @@ if st.session_state.selected_template_path or st.session_state.template_file:
                         # انتخاب فونت مناسب بر اساس وضعیت بولد
                         font_path = FONT_BOLD_PATH if st.session_state.is_bold else FONT_PATH
                         font = ImageFont.truetype(font_path, font_size)
-                        # محاسبه اندازه متن
-                        text_bbox = draw.textbbox((0, 0), bidi_text, font=font)
-                        text_width = text_bbox[2] - text_bbox[0]
-                        text_height = text_bbox[3] - text_bbox[1]
                         
-                        # محاسبه موقعیت مرکز متن
-                        text_x = int((template_width - text_width) * (st.session_state.text_x_percent / 100))
-                        text_y = int((template_height - text_height) * (st.session_state.text_y_percent / 100))
+                        # محاسبه حداکثر عرض متن
+                        max_width = template_width * (st.session_state.max_text_width_percent / 100)
                         
-                        draw.text((text_x, text_y), bidi_text, font=font, fill=st.session_state.text_color)
+                        # شکستن متن به خطوط
+                        lines = wrap_text_to_lines(draw, bidi_text, font, max_width)
+                        
+                        # محاسبه ارتفاع کل متن
+                        # فاصله بین خطوط را به درصدی از ارتفاع فونت تنظیم می‌کنیم
+                        line_spacing_factor = st.session_state.line_spacing_percent / 100
+                        line_height = int(font_size * line_spacing_factor)
+                        total_text_height = line_height * len(lines)
+                        
+                        # محاسبه موقعیت شروع متن
+                        start_y = int((template_height - total_text_height) * (st.session_state.text_y_percent / 100))
+                        
+                        # رسم هر خط متن
+                        for i, line in enumerate(lines):
+                            line_width = draw.textlength(line, font=font)
+                            line_x = int((template_width - line_width) * (st.session_state.text_x_percent / 100))
+                            line_y = start_y + i * line_height
+                            draw.text((line_x, line_y), line, font=font, fill=st.session_state.text_color)
                     except Exception as e:
                         st.error(f"خطا در بارگذاری فونت: {str(e)}")
                         # استفاده از فونت پیش‌فرض در صورت خطا
                         font = ImageFont.load_default()
-                        draw.text((text_x, text_y), bidi_text, font=font, fill=st.session_state.text_color)
+                        st.warning("از فونت پیش‌فرض استفاده شد. متن چندخطی با این فونت پشتیبانی نمی‌شود.")
+                        draw.text((10, 10), bidi_text, font=font, fill=st.session_state.text_color)
                 
                 # نمایش تصویر نهایی با سایز محدود شده برای پیش‌نمایش
                 st.image(final_image, caption=f"تصویر نهایی ({template_width}x{template_height})", width=300)
