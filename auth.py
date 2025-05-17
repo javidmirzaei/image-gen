@@ -3,9 +3,12 @@ import bcrypt
 import streamlit as st
 from datetime import datetime, timedelta
 import os
+import json
+from pathlib import Path
 
 # تنظیمات دیتابیس
 DB_PATH = "users.db"
+COOKIE_FILE = "auth_cookie.json"
 
 def init_db():
     """ایجاد دیتابیس و جدول کاربران"""
@@ -64,10 +67,47 @@ def login_user(username, password):
     conn.close()
     return False
 
+def save_auth_cookie(username):
+    """ذخیره کوکی احراز هویت"""
+    cookie_data = {
+        "username": username,
+        "expires": (datetime.now() + timedelta(days=7)).isoformat()
+    }
+    with open(COOKIE_FILE, 'w') as f:
+        json.dump(cookie_data, f)
+
+def load_auth_cookie():
+    """بارگذاری کوکی احراز هویت"""
+    if not os.path.exists(COOKIE_FILE):
+        return None
+    
+    try:
+        with open(COOKIE_FILE, 'r') as f:
+            cookie_data = json.load(f)
+        
+        # بررسی تاریخ انقضا
+        expires = datetime.fromisoformat(cookie_data["expires"])
+        if datetime.now() > expires:
+            os.remove(COOKIE_FILE)
+            return None
+        
+        return cookie_data["username"]
+    except:
+        return None
+
 def check_authentication():
     """بررسی وضعیت احراز هویت کاربر"""
     if 'authenticated' not in st.session_state:
         st.session_state.authenticated = False
+    
+    if not st.session_state.authenticated:
+        # بررسی کوکی
+        username = load_auth_cookie()
+        if username:
+            st.session_state.authenticated = True
+            st.session_state.username = username
+            return True
+    
     return st.session_state.authenticated
 
 def login_page():
@@ -83,6 +123,7 @@ def login_page():
             if login_user(username, password):
                 st.session_state.authenticated = True
                 st.session_state.username = username
+                save_auth_cookie(username)
                 st.success("✅ ورود موفقیت‌آمیز!")
                 st.rerun()
             else:
@@ -113,6 +154,8 @@ def logout():
     """خروج از سیستم"""
     st.session_state.authenticated = False
     st.session_state.username = None
+    if os.path.exists(COOKIE_FILE):
+        os.remove(COOKIE_FILE)
     st.rerun()
 
 def init_auth():
