@@ -824,8 +824,8 @@ else:
             if st.session_state.default_colors:
                 st.markdown("##### انتخاب از رنگ‌های ذخیره شده:")
                 
-                # تعریف تعداد ستون‌ها
-                colors_per_row = 4
+                # تعریف تعداد ستون‌ها - افزایش تعداد ستون‌ها برای نمایش فشرده‌تر
+                colors_per_row = 6
                 
                 # ساخت HTML برای نمایش رنگ‌ها
                 for i in range(0, len(st.session_state.default_colors), colors_per_row):
@@ -841,11 +841,11 @@ else:
                                 
                                 # استفاده از HTML مستقیم برای نمایش رنگ
                                 st.markdown(f"""
-                                <div style="width: 100%; position: relative; margin-bottom: 10px;">
-                                    <div style="width: 100%; height: 50px; background-color: {color['value']}; 
-                                         border: {('3px solid black' if color['value'] == st.session_state.text_color else '1px solid #ccc')}; 
+                                <div style="width: 100%; position: relative; margin-bottom: 5px;">
+                                    <div style="width: 100%; height: 30px; background-color: {color['value']}; 
+                                         border: {('2px solid black' if color['value'] == st.session_state.text_color else '1px solid #ccc')}; 
                                          border-radius: 4px;"></div>
-                                    <div style="font-size: 0.9em; margin-top: 3px; text-align: center;">{color['name']}</div>
+                                    <div style="font-size: 0.8em; margin-top: 2px; text-align: center;">{color['name']}</div>
                                 </div>
                                 """, unsafe_allow_html=True)
                                 
@@ -862,9 +862,9 @@ else:
                                     top: 0;
                                     left: 0;
                                     width: 100%;
-                                    height: calc(100% - 25px);
+                                    height: calc(100% - 20px);
                                     opacity: 0;
-                                    margin-top: -60px;
+                                    margin-top: -50px;
                                 }}
                                 </style>
                                 """, unsafe_allow_html=True)
