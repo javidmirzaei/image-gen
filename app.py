@@ -12,25 +12,11 @@ import glob
 # تابع کمکی برای شکستن متن به چند خط
 def wrap_text_to_lines(draw, text, font, max_width):
     """
-    متن را با توجه به عرض ماکزیمم به چند خط می‌شکند
+    متن را فقط بر اساس خطوط جدید (اینتر) جدا می‌کند
+    و هیچ شکستن خط خودکاری انجام نمی‌دهد
     """
-    words = text.split(' ')
-    lines = []
-    current_line = words[0]
-    
-    for word in words[1:]:
-        test_line = current_line + ' ' + word
-        test_width = draw.textlength(test_line, font=font)
-        if test_width <= max_width:
-            current_line = test_line
-        else:
-            lines.append(current_line)
-            current_line = word
-    
-    if current_line:
-        lines.append(current_line)
-    
-    return lines
+    # فقط متن را بر اساس خطوط جدید (اینتر) جدا می‌کنیم
+    return text.split('\n')
 
 # تنظیمات اولیه صفحه
 st.set_page_config(
@@ -565,7 +551,7 @@ if st.session_state.selected_template_path or st.session_state.template_file:
 
     # ورود متن
     st.markdown('<p class="upload-header">3️⃣ وارد کردن متن</p>', unsafe_allow_html=True)
-    text_input = st.text_input("متن مورد نظر را وارد کنید", value=st.session_state.text, key="text_input", help="متن فارسی که می‌خواهید روی تصویر قرار دهید را وارد کنید")
+    text_input = st.text_area("متن مورد نظر را وارد کنید", value=st.session_state.text, height=150, key="text_input", help="متن فارسی که می‌خواهید روی تصویر قرار دهید را وارد کنید. هر خط جدید در تصویر نیز به عنوان خط جدید نمایش داده می‌شود.")
 
     # ذخیره متن در session state
     if 'text_input' in st.session_state and st.session_state.text_input != st.session_state.text:
