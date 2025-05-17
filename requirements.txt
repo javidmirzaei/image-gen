@@ -1,4 +1,11 @@
-altgraph @ file:///AppleInternal/Library/BuildRoots/bcce998f-ff34-11ef-9d34-f2a857e00a32/Library/Caches/com.apple.xbs/Sources/python3/altgraph-0.17.2-py2.py3-none-any.whl
-future @ file:///AppleInternal/Library/BuildRoots/bcce998f-ff34-11ef-9d34-f2a857e00a32/Library/Caches/com.apple.xbs/Sources/python3/future-0.18.2-py3-none-any.whl
-macholib @ file:///AppleInternal/Library/BuildRoots/bcce998f-ff34-11ef-9d34-f2a857e00a32/Library/Caches/com.apple.xbs/Sources/python3/macholib-1.15.2-py2.py3-none-any.whl
-six @ file:///AppleInternal/Library/BuildRoots/bcce998f-ff34-11ef-9d34-f2a857e00a32/Library/Caches/com.apple.xbs/Sources/python3/six-1.15.0-py2.py3-none-any.whl
+streamlit==1.32.0
+Pillow==10.2.0
+arabic-reshaper==3.0.0
+python-bidi==0.4.2
+bcrypt==4.1.2
+python-jose==3.3.0
+markdown-it-py==3.0.0
+mdurl==0.1.2
+pygments==2.19.1
+rich==14.0.0
+typing-extensions==4.13.2 
