@@ -4,21 +4,5 @@
   "build": {
     "location": "iran"
   },
-  "disks": [
-    {
-      "name": "data",
-      "mountTo": "/usr/src/app/data"
-    },
-    {
-      "name": "settings",
-      "mountTo": "/usr/src/app/settings"
-    },
-    {
-      "name": "templates",
-      "mountTo": "/usr/src/app/templates"
-    }
-  ],
-  "python": {
-    "pythonPath": "app.py"
-  }
+  "disks": []
 }
