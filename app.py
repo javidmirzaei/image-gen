@@ -30,8 +30,10 @@ st.set_page_config(
 # تنظیم مسیر فونت‌ها و تمپلیت‌ها
 FONT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "Vazirmatn-Regular.ttf")
 FONT_BOLD_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "Vazirmatn-Bold.ttf")
-TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
-SETTINGS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings")
+
+# استفاده از مسیر tmp برای پوشه‌های قابل نوشتن
+TEMPLATES_DIR = os.path.join("/tmp", "templates")
+SETTINGS_DIR = os.path.join("/tmp", "settings")
 
 # اطمینان از وجود پوشه تمپلیت‌ها و تنظیمات
 if not os.path.exists(TEMPLATES_DIR):
@@ -236,7 +238,7 @@ if not init_auth():
     st.stop()
 
 # مسیر فایل دیتابیس رنگ‌ها
-COLORS_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "colors.json")
+COLORS_DB_PATH = os.path.join("/tmp", "colors.json")
 
 # اطمینان از وجود پوشه data
 if not os.path.exists(os.path.dirname(COLORS_DB_PATH)):

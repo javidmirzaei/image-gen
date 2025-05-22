@@ -1,0 +1,17 @@
+{
+  "text": {
+    "font_size_percent": 13,
+    "text_color": "#000000",
+    "text_x_percent": 12,
+    "text_y_percent": 98,
+    "max_text_width_percent": 80,
+    "line_spacing_percent": 120,
+    "is_bold": false
+  },
+  "layer": {
+    "x_percent": 78,
+    "y_percent": 0,
+    "size_percent": 236,
+    "opacity": 100
+  }
+}
