@@ -439,7 +439,7 @@ if 'title_text' not in st.session_state:
 
 # برای ذخیره تنظیمات متن
 if 'font_size_percent' not in st.session_state:
-    st.session_state.font_size_percent = 4
+    st.session_state.font_size_percent = 40
 if 'text_color' not in st.session_state:
     st.session_state.text_color = "#000000"
 if 'is_bold' not in st.session_state:
@@ -455,7 +455,7 @@ if 'line_spacing_percent' not in st.session_state:
 
 # برای ذخیره تنظیمات عنوان
 if 'title_font_size_percent' not in st.session_state:
-    st.session_state.title_font_size_percent = 6
+    st.session_state.title_font_size_percent = 60
 if 'title_text_color' not in st.session_state:
     st.session_state.title_text_color = "#000000"
 if 'title_is_bold' not in st.session_state:
@@ -583,7 +583,7 @@ if st.session_state.current_page == 'settings':
                         st.markdown("**🏷️ تنظیمات عنوان:**")
                         title_col1, title_col2 = st.columns(2)
                         with title_col1:
-                            default_title_font_size = st.slider("سایز فونت عنوان (% ارتفاع)", 1, 20, 6, key="default_title_font_size")
+                            default_title_font_size = st.slider("سایز فونت عنوان (پیکسل)", 10, 200, 60, key="default_title_font_size")
                             default_title_x = st.slider("موقعیت افقی عنوان (%)", 0, 100, 50, key="default_title_x")
                         with title_col2:
                             default_title_y = st.slider("موقعیت عمودی عنوان (%)", 0, 100, 10, key="default_title_y")
@@ -593,7 +593,7 @@ if st.session_state.current_page == 'settings':
                         
                         # تنظیمات اساسی متن
                         st.markdown("**📝 تنظیمات متن:**")
-                        default_font_size = st.slider("سایز فونت (% ارتفاع)", 1, 20, 4, key="default_font_size")
+                        default_font_size = st.slider("سایز فونت (پیکسل)", 8, 150, 40, key="default_font_size")
                         default_text_color = st.color_picker("رنگ متن", "#000000", key="default_text_color")
                         
                         # تنظیمات موقعیت متن
@@ -737,7 +737,7 @@ if st.session_state.current_page == 'settings':
                             # اضافه کردن عنوان نمونه
                             if test_title:
                                 title_bidi_text = process_persian_text(test_title)
-                                title_font_size = int(template_height * (default_title_font_size / 100))
+                                title_font_size = default_title_font_size  # استفاده مستقیم از پیکسل
                                 
                                 try:
                                     title_font_path = FONT_BOLD_PATH if default_title_is_bold else FONT_PATH
@@ -768,7 +768,7 @@ if st.session_state.current_page == 'settings':
                             # اضافه کردن متن نمونه
                             if test_text:
                                 bidi_text = process_persian_text(test_text)
-                                font_size = int(template_height * (default_font_size / 100))
+                                font_size = default_font_size  # استفاده مستقیم از پیکسل
                                 
                                 try:
                                     font_path = FONT_BOLD_PATH if default_is_bold else FONT_PATH
@@ -826,7 +826,7 @@ if st.session_state.current_page == 'settings':
                             # ذخیره تنظیمات پیش‌فرض
                             template_settings = {
                                 "title": {
-                                    "font_size_percent": default_title_font_size,
+                                    "font_size_pixels": default_title_font_size,
                                     "text_color": default_title_color,
                                     "is_bold": default_title_is_bold,
                                     "text_x_percent": default_title_x,
@@ -835,7 +835,7 @@ if st.session_state.current_page == 'settings':
                                     "line_spacing_percent": default_title_line_spacing
                                 },
                                 "text": {
-                                    "font_size_percent": default_font_size,
+                                    "font_size_pixels": default_font_size,
                                     "text_color": default_text_color,
                                     "is_bold": default_is_bold,
                                     "text_x_percent": default_text_x,
@@ -1129,7 +1129,7 @@ else:
                     # اضافه کردن عنوان
                     if st.session_state.title_text:
                         title_bidi_text = process_persian_text(st.session_state.title_text)
-                        title_font_size = int(template_height * (st.session_state.title_font_size_percent / 100))
+                        title_font_size = st.session_state.title_font_size_percent  # استفاده مستقیم از پیکسل
                         
                         try:
                             title_font_path = FONT_BOLD_PATH if st.session_state.title_is_bold else FONT_PATH
@@ -1160,7 +1160,7 @@ else:
                     # اضافه کردن متن
                     if st.session_state.text:
                         bidi_text = process_persian_text(st.session_state.text)
-                        font_size = int(template_height * (st.session_state.font_size_percent / 100))
+                        font_size = st.session_state.font_size_percent  # استفاده مستقیم از پیکسل
                         
                         try:
                             font_path = FONT_BOLD_PATH if st.session_state.is_bold else FONT_PATH
@@ -1256,7 +1256,8 @@ else:
             if template_settings and st.session_state.get('last_loaded_template') != selected_template:
                 # اعمال تنظیمات پیش‌فرض برای متن
                 text_settings = template_settings.get("text", {})
-                st.session_state.font_size_percent = text_settings.get("font_size_percent", 4)
+                # پشتیبانی از هر دو فرمت قدیم و جدید
+                st.session_state.font_size_percent = text_settings.get("font_size_pixels", text_settings.get("font_size_percent", 40))
                 st.session_state.text_color = text_settings.get("text_color", "#000000")
                 st.session_state.is_bold = text_settings.get("is_bold", False)
                 st.session_state.text_x_percent = text_settings.get("text_x_percent", 50)
@@ -1266,7 +1267,8 @@ else:
                 
                 # اعمال تنظیمات پیش‌فرض برای عنوان
                 title_settings = template_settings.get("title", {})
-                st.session_state.title_font_size_percent = title_settings.get("font_size_percent", 6)
+                # پشتیبانی از هر دو فرمت قدیم و جدید
+                st.session_state.title_font_size_percent = title_settings.get("font_size_pixels", title_settings.get("font_size_percent", 60))
                 st.session_state.title_text_color = title_settings.get("text_color", "#000000")
                 st.session_state.title_is_bold = title_settings.get("is_bold", True)
                 st.session_state.title_text_x_percent = title_settings.get("text_x_percent", 50)
@@ -1421,7 +1423,7 @@ else:
         title_col1, title_col2 = st.columns(2)
 
         with title_col1:
-            title_font_size = st.slider("سایز فونت عنوان (% ارتفاع تصویر)", 1, 20, st.session_state.title_font_size_percent, key="title_font_size_slider", help="سایز فونت عنوان به صورت درصدی از ارتفاع تصویر")
+            title_font_size = st.slider("سایز فونت عنوان (پیکسل)", 10, 200, st.session_state.title_font_size_percent, key="title_font_size_slider", help="سایز فونت عنوان به صورت پیکسل")
             # بروزرسانی session state
             if 'title_font_size_slider' in st.session_state:
                 st.session_state.title_font_size_percent = st.session_state.title_font_size_slider
@@ -1467,7 +1469,7 @@ else:
         text_col1, text_col2 = st.columns(2)
 
         with text_col1:
-            font_size = st.slider("سایز فونت (% ارتفاع تصویر)", 1, 20, st.session_state.font_size_percent, key="font_size_slider", help="سایز فونت به صورت درصدی از ارتفاع تصویر")
+            font_size = st.slider("سایز فونت (پیکسل)", 8, 150, st.session_state.font_size_percent, key="font_size_slider", help="سایز فونت به صورت پیکسل")
             # بروزرسانی session state
             if 'font_size_slider' in st.session_state:
                 st.session_state.font_size_percent = st.session_state.font_size_slider
