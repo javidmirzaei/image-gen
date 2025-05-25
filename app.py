@@ -1,7 +1,6 @@
 import streamlit as st
 from PIL import Image, ImageDraw, ImageFont
 import arabic_reshaper
-from bidi.algorithm import get_display
 import os
 import traceback
 import base64
@@ -434,6 +433,10 @@ if 'template_file' not in st.session_state:
 if 'text' not in st.session_state:
     st.session_state.text = ""
 
+# برای ذخیره عنوان
+if 'title_text' not in st.session_state:
+    st.session_state.title_text = ""
+
 # برای ذخیره تنظیمات متن
 if 'font_size_percent' not in st.session_state:
     st.session_state.font_size_percent = 4
@@ -449,6 +452,22 @@ if 'max_text_width_percent' not in st.session_state:
     st.session_state.max_text_width_percent = 80
 if 'line_spacing_percent' not in st.session_state:
     st.session_state.line_spacing_percent = 120
+
+# برای ذخیره تنظیمات عنوان
+if 'title_font_size_percent' not in st.session_state:
+    st.session_state.title_font_size_percent = 6
+if 'title_text_color' not in st.session_state:
+    st.session_state.title_text_color = "#000000"
+if 'title_is_bold' not in st.session_state:
+    st.session_state.title_is_bold = True
+if 'title_text_x_percent' not in st.session_state:
+    st.session_state.title_text_x_percent = 50
+if 'title_text_y_percent' not in st.session_state:
+    st.session_state.title_text_y_percent = 10
+if 'title_max_text_width_percent' not in st.session_state:
+    st.session_state.title_max_text_width_percent = 80
+if 'title_line_spacing_percent' not in st.session_state:
+    st.session_state.title_line_spacing_percent = 120
 
 # برای ذخیره وضعیت صفحه‌ای که کاربر در آن قرار دارد
 if 'current_page' not in st.session_state:
@@ -737,13 +756,58 @@ if st.session_state.current_page == 'settings':
                                         # اضافه کردن تصویر به پیش‌نمایش
                                         preview_image.paste(layer_image, (img_x, img_y), layer_image)
                                 
-                                # اضافه کردن تمپلیت به عنوان لایه بالایی
-                                if template_preview.mode == 'RGBA':
-                                    preview_image = Image.alpha_composite(preview_image, template_preview)
+                                # اضافه کردن تمپلیت به عنوان لایه بالایی (بالاتر از لایه‌های تصویر)
+                                if template.mode == 'RGBA':
+                                    # اگر تمپلیت شفافیت داشته باشد، با حفظ شفافیت روی تصویر قرار می‌گیرد
+                                    preview_image = Image.alpha_composite(preview_image, template)
                                 else:
-                                    template_rgba = template_preview.convert('RGBA')
+                                    # تبدیل تمپلیت به RGBA
+                                    template_rgba = template.convert('RGBA')
                                     preview_image = Image.alpha_composite(preview_image, template_rgba)
                                 
+                                # اضافه کردن عنوان به عنوان لایه بالایی (روی همه چیز، حتی تمپلیت)
+                                if st.session_state.title_text:
+                                    # آماده‌سازی عنوان فارسی
+                                    title_bidi_text = process_persian_text(st.session_state.title_text)
+                                    
+                                    # محاسبه سایز فونت بر اساس درصد ارتفاع
+                                    title_font_size = int(template_height * (st.session_state.title_font_size_percent / 100))
+                                    
+                                    try:
+                                        # انتخاب فونت مناسب بر اساس وضعیت بولد
+                                        title_font_path = FONT_BOLD_PATH if st.session_state.title_is_bold else FONT_PATH
+                                        title_font = ImageFont.truetype(title_font_path, title_font_size)
+                                        
+                                        # ایجاد یک تصویر شفاف برای عنوان
+                                        title_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 0))
+                                        title_draw = ImageDraw.Draw(title_image)
+                                        
+                                        # محاسبه حداکثر عرض عنوان
+                                        title_max_width = template_width * (st.session_state.title_max_text_width_percent / 100)
+                                        
+                                        # شکستن عنوان به خطوط
+                                        title_lines = wrap_text_to_lines(title_draw, title_bidi_text, title_font, title_max_width)
+                                        
+                                        # محاسبه ارتفاع کل عنوان
+                                        title_line_spacing_factor = st.session_state.title_line_spacing_percent / 100
+                                        title_line_height = int(title_font_size * title_line_spacing_factor)
+                                        title_total_text_height = title_line_height * len(title_lines)
+                                        
+                                        # محاسبه موقعیت شروع عنوان
+                                        title_start_y = int((template_height - title_total_text_height) * (st.session_state.title_text_y_percent / 100))
+                                        
+                                        # رسم هر خط عنوان
+                                        for i, line in enumerate(title_lines):
+                                            line_width = title_draw.textlength(line, font=title_font)
+                                            line_x = int((template_width - line_width) * (st.session_state.title_text_x_percent / 100))
+                                            line_y = title_start_y + i * title_line_height
+                                            title_draw.text((line_x, line_y), line, font=title_font, fill=st.session_state.title_text_color)
+                                        
+                                        # ترکیب تصویر عنوان با تصویر اصلی
+                                        preview_image = Image.alpha_composite(preview_image, title_image)
+                                    except Exception as e:
+                                        st.error(f"خطا در بارگذاری فونت عنوان: {str(e)}")
+
                                 # نمایش نتیجه
                                 st.image(preview_image, caption="پیش‌نمایش ترکیب تمام لایه‌ها با تمپلیت", width=300)
                                 
@@ -1177,7 +1241,7 @@ else:
             if st.session_state.selected_template_path:
                 template_path = st.session_state.selected_template_path
             
-            if template_path and (st.session_state.layers or st.session_state.text):
+            if template_path and (st.session_state.layers or st.session_state.text or st.session_state.title_text):
                 try:
                     # باز کردن تمپلیت
                     template = Image.open(template_path)
@@ -1194,7 +1258,6 @@ else:
                     for layer in st.session_state.layers:
                         if layer.visible and layer.image:
                             # محاسبه سایز تصویر بر اساس درصد کوچکترین بعد تمپلیت
-                            # مقادیر بزرگتر از 100% باعث می‌شود تصویر بزرگتر از حالت اصلی شود
                             max_dimension = int(min_dimension * (layer.size_percent / 100))
                             
                             # تغییر سایز تصویر لایه با حفظ نسبت تصویر
@@ -1208,7 +1271,6 @@ else:
                                 new_height = max_dimension
                                 new_width = int(max_dimension * aspect_ratio)
                             
-                            # حتی اگر مقیاس بزرگتر از 100% باشد، تغییر سایز انجام می‌شود (بزرگنمایی)
                             layer_image = layer.image.resize((new_width, new_height), Image.LANCZOS)
                             
                             # تبدیل به RGBA اگر PNG است
@@ -1226,91 +1288,82 @@ else:
                             # اضافه کردن تصویر به پیش‌نمایش
                             preview_image.paste(layer_image, (img_x, img_y), layer_image)
                     
-                    # اضافه کردن تمپلیت به عنوان لایه بالایی (بالاتر از لایه‌های تصویر)
+                    # اضافه کردن تمپلیت به عنوان لایه بالایی
                     if template.mode == 'RGBA':
-                        # اگر تمپلیت شفافیت داشته باشد، با حفظ شفافیت روی تصویر قرار می‌گیرد
                         preview_image = Image.alpha_composite(preview_image, template)
                     else:
-                        # تبدیل تمپلیت به RGBA
                         template_rgba = template.convert('RGBA')
                         preview_image = Image.alpha_composite(preview_image, template_rgba)
                     
-                    # اضافه کردن متن به عنوان بالاترین لایه (روی همه چیز، حتی تمپلیت)
-                    if st.session_state.text:
-                        # آماده‌سازی متن فارسی
-                        bidi_text = process_persian_text(st.session_state.text)
+                    # اضافه کردن عنوان
+                    if st.session_state.title_text:
+                        title_bidi_text = process_persian_text(st.session_state.title_text)
+                        title_font_size = int(template_height * (st.session_state.title_font_size_percent / 100))
                         
-                        # محاسبه سایز فونت بر اساس درصد ارتفاع
+                        try:
+                            title_font_path = FONT_BOLD_PATH if st.session_state.title_is_bold else FONT_PATH
+                            title_font = ImageFont.truetype(title_font_path, title_font_size)
+                            
+                            title_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 0))
+                            title_draw = ImageDraw.Draw(title_image)
+                            
+                            title_max_width = template_width * (st.session_state.title_max_text_width_percent / 100)
+                            title_lines = wrap_text_to_lines(title_draw, title_bidi_text, title_font, title_max_width)
+                            
+                            title_line_spacing_factor = st.session_state.title_line_spacing_percent / 100
+                            title_line_height = int(title_font_size * title_line_spacing_factor)
+                            title_total_text_height = title_line_height * len(title_lines)
+                            
+                            title_start_y = int((template_height - title_total_text_height) * (st.session_state.title_text_y_percent / 100))
+                            
+                            for i, line in enumerate(title_lines):
+                                line_width = title_draw.textlength(line, font=title_font)
+                                line_x = int((template_width - line_width) * (st.session_state.title_text_x_percent / 100))
+                                line_y = title_start_y + i * title_line_height
+                                title_draw.text((line_x, line_y), line, font=title_font, fill=st.session_state.title_text_color)
+                            
+                            preview_image = Image.alpha_composite(preview_image, title_image)
+                        except Exception as e:
+                            st.error(f"خطا در بارگذاری فونت عنوان: {str(e)}")
+
+                    # اضافه کردن متن
+                    if st.session_state.text:
+                        bidi_text = process_persian_text(st.session_state.text)
                         font_size = int(template_height * (st.session_state.font_size_percent / 100))
                         
                         try:
-                            # انتخاب فونت مناسب بر اساس وضعیت بولد
                             font_path = FONT_BOLD_PATH if st.session_state.is_bold else FONT_PATH
                             font = ImageFont.truetype(font_path, font_size)
                             
-                            # ایجاد یک تصویر شفاف برای متن
                             text_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 0))
                             text_draw = ImageDraw.Draw(text_image)
                             
-                            # محاسبه حداکثر عرض متن
                             max_width = template_width * (st.session_state.max_text_width_percent / 100)
-                            
-                            # شکستن متن به خطوط
                             lines = wrap_text_to_lines(text_draw, bidi_text, font, max_width)
                             
-                            # محاسبه ارتفاع کل متن
-                            # فاصله بین خطوط را به درصدی از ارتفاع فونت تنظیم می‌کنیم
                             line_spacing_factor = st.session_state.line_spacing_percent / 100
                             line_height = int(font_size * line_spacing_factor)
                             total_text_height = line_height * len(lines)
                             
-                            # محاسبه موقعیت شروع متن - نسبت به ابعاد تمپلیت
-                            # برای موقعیت افقی (x): 0% یعنی چپ، 50% یعنی وسط و 100% یعنی راست تمپلیت
-                            # برای موقعیت عمودی (y): 0% یعنی بالا، 50% یعنی وسط و 100% یعنی پایین تمپلیت
                             start_y = int((template_height - total_text_height) * (st.session_state.text_y_percent / 100))
                             
-                            # رسم هر خط متن روی تصویر شفاف
                             for i, line in enumerate(lines):
                                 line_width = text_draw.textlength(line, font=font)
-                                # محاسبه موقعیت افقی متن نسبت به عرض تمپلیت
                                 line_x = int((template_width - line_width) * (st.session_state.text_x_percent / 100))
                                 line_y = start_y + i * line_height
                                 text_draw.text((line_x, line_y), line, font=font, fill=st.session_state.text_color)
                             
-                            # ترکیب تصویر متن با تصویر اصلی
                             preview_image = Image.alpha_composite(preview_image, text_image)
                         except Exception as e:
                             st.error(f"خطا در بارگذاری فونت: {str(e)}")
-                            # استفاده از فونت پیش‌فرض در صورت خطا
-                            font = ImageFont.load_default()
-                            st.warning("از فونت پیش‌فرض استفاده شد. متن چندخطی با این فونت پشتیبانی نمی‌شود.")
-                            draw.text((10, 10), bidi_text, font=font, fill=st.session_state.text_color)
                     
                     # نمایش تصویر با سایز محدود شده
                     st.image(preview_image, caption=f"پیش‌نمایش ({template_width}x{template_height})", width=300)
                     
-                    # ذخیره تصویر با سایز اصلی
-                    final_image = preview_image.copy()
-                    final_image.save("output.png", quality=100)
-                    
-                    # ایجاد دکمه دانلود
-                    with open("output.png", "rb") as file:
-                        btn = st.download_button(
-                            label="⬇️ دانلود تصویر",
-                            data=file,
-                            file_name="output.png",
-                            mime="image/png",
-                            key="sidebar_download_btn"
-                        )
-                    
-                    st.success(f"✅ تصویر با موفقیت ساخته شد! (سایز: {template_width}x{template_height})")
-                    
                 except Exception as e:
-                    st.error(f"❌ خطا در ساخت تصویر: {str(e)}")
-                    st.error("جزئیات خطا:")
-                    st.code(traceback.format_exc())
+                    st.error(f"❌ خطا در ساخت پیش‌نمایش: {str(e)}")
             else:
-                st.info("👆 برای مشاهده پیش‌نمایش، ابتدا یک تمپلیت انتخاب کنید و حداقل یک لایه یا متن اضافه کنید.")
+                st.info("👆 برای مشاهده پیش‌نمایش، ابتدا یک تمپلیت انتخاب کنید و حداقل یک لایه، عنوان یا متن اضافه کنید.")
         
         # نمایش اطلاعات کاربر و دکمه خروج
         st.markdown("---")
@@ -1503,14 +1556,40 @@ else:
                 
                 st.markdown("---")
 
+        # ورود عنوان
+        st.markdown('<p class="upload-header">3️⃣ وارد کردن عنوان</p>', unsafe_allow_html=True)
+        title_input = st.text_input("عنوان مورد نظر را وارد کنید", value=st.session_state.title_text, key="title_input", help="عنوان فارسی که می‌خواهید روی تصویر قرار دهید را وارد کنید.")
+
+        # ذخیره عنوان در session state
+        if 'title_input' in st.session_state and st.session_state.title_input != st.session_state.title_text:
+            st.session_state.title_text = st.session_state.title_input
+        
+        # تنظیمات عنوان
+        st.markdown('<p class="settings-header">⚙️ تنظیمات عنوان</p>', unsafe_allow_html=True)
+        title_col1, title_col2 = st.columns(2)
+
+        with title_col1:
+            title_font_size = st.slider("سایز فونت عنوان (% ارتفاع تصویر)", 1, 20, st.session_state.title_font_size_percent, key="title_font_size_slider", help="سایز فونت عنوان به صورت درصدی از ارتفاع تصویر", on_change=lambda: st.session_state.update({"title_font_size_percent": st.session_state.title_font_size_slider}))
+            title_color = st.color_picker("رنگ عنوان", st.session_state.title_text_color, key="title_color_picker", help="رنگ عنوان را انتخاب کنید")
+            if 'title_color_picker' in st.session_state and st.session_state.title_color_picker != st.session_state.title_text_color:
+                st.session_state.title_text_color = st.session_state.title_color_picker
+            title_is_bold = st.checkbox("عنوان بولد", value=st.session_state.title_is_bold, key="title_is_bold_checkbox", help="نمایش عنوان به صورت بولد")
+            if 'title_is_bold_checkbox' in st.session_state and st.session_state.title_is_bold_checkbox != st.session_state.title_is_bold:
+                st.session_state.title_is_bold = st.session_state.title_is_bold_checkbox
+
+        with title_col2:
+            title_x = st.slider("موقعیت افقی عنوان (%)", 0, 100, st.session_state.title_text_x_percent, key="title_x_slider", help="0: کاملاً چپ تمپلیت، 50: وسط تمپلیت، 100: کاملاً راست تمپلیت", on_change=lambda: st.session_state.update({"title_text_x_percent": st.session_state.title_x_slider}))
+            title_y = st.slider("موقعیت عمودی عنوان (%)", 0, 100, st.session_state.title_text_y_percent, key="title_y_slider", help="0: کاملاً بالای تمپلیت، 50: وسط تمپلیت، 100: کاملاً پایین تمپلیت", on_change=lambda: st.session_state.update({"title_text_y_percent": st.session_state.title_y_slider}))
+            title_max_width = st.slider("عرض عنوان (%)", 10, 100, st.session_state.title_max_text_width_percent, key="title_max_width_slider", help="حداکثر عرض عنوان به صورت درصدی از عرض تمپلیت", on_change=lambda: st.session_state.update({"title_max_text_width_percent": st.session_state.title_max_width_slider}))
+            title_line_spacing = st.slider("فاصله خطوط عنوان (%)", 100, 200, st.session_state.title_line_spacing_percent, key="title_line_spacing_slider", help="فاصله بین خطوط عنوان به صورت درصدی از ارتفاع خط", on_change=lambda: st.session_state.update({"title_line_spacing_percent": st.session_state.title_line_spacing_slider}))
+
         # ورود متن
-        st.markdown('<p class="upload-header">3️⃣ وارد کردن متن</p>', unsafe_allow_html=True)
+        st.markdown('<p class="upload-header">4️⃣ وارد کردن متن</p>', unsafe_allow_html=True)
         text_input = st.text_area("متن مورد نظر را وارد کنید", value=st.session_state.text, height=150, key="text_input", help="متن فارسی که می‌خواهید روی تصویر قرار دهید را وارد کنید. هر خط جدید در تصویر نیز به عنوان خط جدید نمایش داده می‌شود.")
 
         # ذخیره متن در session state
         if 'text_input' in st.session_state and st.session_state.text_input != st.session_state.text:
             st.session_state.text = st.session_state.text_input
-            st.rerun()
         
         # تنظیمات متن
         st.markdown('<p class="settings-header">⚙️ تنظیمات متن</p>', unsafe_allow_html=True)
@@ -1518,78 +1597,9 @@ else:
 
         with text_col1:
             font_size = st.slider("سایز فونت (% ارتفاع تصویر)", 1, 20, st.session_state.font_size_percent, key="font_size_slider", help="سایز فونت به صورت درصدی از ارتفاع تصویر", on_change=lambda: st.session_state.update({"font_size_percent": st.session_state.font_size_slider}))
-            
-            # بخش انتخاب رنگ متن با قابلیت استفاده از رنگ‌های ذخیره شده
-            st.markdown("#### رنگ متن")
-            
-            # نمایش رنگ فعلی
-            st.markdown(f"""
-            <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                <div style="width: 30px; height: 30px; background-color: {st.session_state.text_color}; border: 1px solid #ccc; margin-right: 10px; border-radius: 4px;"></div>
-                <span>رنگ فعلی: {st.session_state.text_color}</span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # انتخاب رنگ سفارشی
-            st.markdown("##### انتخاب رنگ سفارشی:")
-            text_color = st.color_picker("", st.session_state.text_color, key="text_color_picker", help="رنگ متن را انتخاب کنید")
+            text_color = st.color_picker("رنگ متن", st.session_state.text_color, key="text_color_picker", help="رنگ متن را انتخاب کنید")
             if 'text_color_picker' in st.session_state and st.session_state.text_color_picker != st.session_state.text_color:
                 st.session_state.text_color = st.session_state.text_color_picker
-            
-            # نمایش رنگ‌های ذخیره شده
-            if st.session_state.default_colors:
-                st.markdown("##### انتخاب از رنگ‌های ذخیره شده:")
-                
-                # تعریف تعداد ستون‌ها - افزایش تعداد ستون‌ها برای نمایش فشرده‌تر
-                colors_per_row = 6
-                
-                # ساخت HTML برای نمایش رنگ‌ها
-                for i in range(0, len(st.session_state.default_colors), colors_per_row):
-                    cols = st.columns(colors_per_row)
-                    for j in range(colors_per_row):
-                        idx = i + j
-                        if idx < len(st.session_state.default_colors):
-                            color = st.session_state.default_colors[idx]
-                            with cols[j]:
-                                # ایجاد یک دکمه که ظاهر آن به صورت مربع رنگی است
-                                # افزودن کلاس CSS برای استایل دهی مناسب
-                                st_key = f"color_btn_{idx}"
-                                
-                                # استفاده از HTML مستقیم برای نمایش رنگ
-                                st.markdown(f"""
-                                <div style="width: 100%; position: relative; margin-bottom: 5px;">
-                                    <div style="width: 100%; height: 30px; background-color: {color['value']}; 
-                                         border: {('2px solid black' if color['value'] == st.session_state.text_color else '1px solid #ccc')}; 
-                                         border-radius: 4px;"></div>
-                                    <div style="font-size: 0.8em; margin-top: 2px; text-align: center;">{color['name']}</div>
-                                </div>
-                                """, unsafe_allow_html=True)
-                                
-                                # دکمه نامرئی که روی رنگ قرار می‌گیرد
-                                # تابع تغییر رنگ بدون rerun
-                                def change_color(color_value=color['value']):
-                                    st.session_state.text_color = color_value
-                                
-                                if st.button("انتخاب", key=st_key, help=f"انتخاب رنگ {color['name']}", use_container_width=True, on_click=change_color):
-                                    pass  # عملیات دیگری مورد نیاز نیست
-                                
-                                # CSS برای پوشاندن دکمه روی رنگ
-                                st.markdown(f"""
-                                <style>
-                                button[data-testid="button-{st_key}"] {{
-                                    position: absolute;
-                                    top: 0;
-                                    left: 0;
-                                    width: 100%;
-                                    height: calc(100% - 20px);
-                                    opacity: 0;
-                                    margin-top: -50px;
-                                }}
-                                </style>
-                                """, unsafe_allow_html=True)
-            else:
-                st.info("هنوز رنگی ذخیره نشده است. از بخش تنظیمات، رنگ‌های مورد نظر خود را اضافه کنید.")
-            
             is_bold = st.checkbox("متن بولد", value=st.session_state.is_bold, key="is_bold_checkbox", help="نمایش متن به صورت بولد")
             if 'is_bold_checkbox' in st.session_state and st.session_state.is_bold_checkbox != st.session_state.is_bold:
                 st.session_state.is_bold = st.session_state.is_bold_checkbox
@@ -1610,7 +1620,7 @@ else:
             elif st.session_state.selected_template_path:
                 template_path = st.session_state.selected_template_path
             
-            if template_path and (st.session_state.layers or st.session_state.text):
+            if template_path and (st.session_state.layers or st.session_state.text or st.session_state.title_text):
                 try:
                     # باز کردن تمپلیت
                     template = Image.open(template_path)
@@ -1627,7 +1637,6 @@ else:
                     for layer in st.session_state.layers:
                         if layer.visible and layer.image:
                             # محاسبه سایز تصویر بر اساس درصد کوچکترین بعد تمپلیت
-                            # مقادیر بزرگتر از 100% باعث می‌شود تصویر بزرگتر از حالت اصلی شود
                             max_dimension = int(min_dimension * (layer.size_percent / 100))
                             
                             # تغییر سایز تصویر لایه با حفظ نسبت تصویر
@@ -1641,7 +1650,6 @@ else:
                                 new_height = max_dimension
                                 new_width = int(max_dimension * aspect_ratio)
                             
-                            # حتی اگر مقیاس بزرگتر از 100% باشد، تغییر سایز انجام می‌شود (بزرگنمایی)
                             layer_image = layer.image.resize((new_width, new_height), Image.LANCZOS)
                             
                             # تبدیل به RGBA اگر PNG است
@@ -1659,74 +1667,81 @@ else:
                             # اضافه کردن تصویر به پیش‌نمایش
                             preview_image.paste(layer_image, (img_x, img_y), layer_image)
                     
-                    # اضافه کردن تمپلیت به عنوان لایه بالایی (بالاتر از لایه‌های تصویر)
+                    # اضافه کردن تمپلیت به عنوان لایه بالایی
                     if template.mode == 'RGBA':
-                        # اگر تمپلیت شفافیت داشته باشد، با حفظ شفافیت روی تصویر قرار می‌گیرد
                         preview_image = Image.alpha_composite(preview_image, template)
                     else:
-                        # تبدیل تمپلیت به RGBA
                         template_rgba = template.convert('RGBA')
                         preview_image = Image.alpha_composite(preview_image, template_rgba)
                     
-                    # اضافه کردن متن به عنوان بالاترین لایه (روی همه چیز، حتی تمپلیت)
-                    if st.session_state.text:
-                        # آماده‌سازی متن فارسی
-                        bidi_text = process_persian_text(st.session_state.text)
+                    # اضافه کردن عنوان
+                    if st.session_state.title_text:
+                        title_bidi_text = process_persian_text(st.session_state.title_text)
+                        title_font_size = int(template_height * (st.session_state.title_font_size_percent / 100))
                         
-                        # محاسبه سایز فونت بر اساس درصد ارتفاع
+                        try:
+                            title_font_path = FONT_BOLD_PATH if st.session_state.title_is_bold else FONT_PATH
+                            title_font = ImageFont.truetype(title_font_path, title_font_size)
+                            
+                            title_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 0))
+                            title_draw = ImageDraw.Draw(title_image)
+                            
+                            title_max_width = template_width * (st.session_state.title_max_text_width_percent / 100)
+                            title_lines = wrap_text_to_lines(title_draw, title_bidi_text, title_font, title_max_width)
+                            
+                            title_line_spacing_factor = st.session_state.title_line_spacing_percent / 100
+                            title_line_height = int(title_font_size * title_line_spacing_factor)
+                            title_total_text_height = title_line_height * len(title_lines)
+                            
+                            title_start_y = int((template_height - title_total_text_height) * (st.session_state.title_text_y_percent / 100))
+                            
+                            for i, line in enumerate(title_lines):
+                                line_width = title_draw.textlength(line, font=title_font)
+                                line_x = int((template_width - line_width) * (st.session_state.title_text_x_percent / 100))
+                                line_y = title_start_y + i * title_line_height
+                                title_draw.text((line_x, line_y), line, font=title_font, fill=st.session_state.title_text_color)
+                            
+                            preview_image = Image.alpha_composite(preview_image, title_image)
+                        except Exception as e:
+                            st.error(f"خطا در بارگذاری فونت عنوان: {str(e)}")
+
+                    # اضافه کردن متن
+                    if st.session_state.text:
+                        bidi_text = process_persian_text(st.session_state.text)
                         font_size = int(template_height * (st.session_state.font_size_percent / 100))
                         
                         try:
-                            # انتخاب فونت مناسب بر اساس وضعیت بولد
                             font_path = FONT_BOLD_PATH if st.session_state.is_bold else FONT_PATH
                             font = ImageFont.truetype(font_path, font_size)
                             
-                            # ایجاد یک تصویر شفاف برای متن
                             text_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 0))
                             text_draw = ImageDraw.Draw(text_image)
                             
-                            # محاسبه حداکثر عرض متن
                             max_width = template_width * (st.session_state.max_text_width_percent / 100)
-                            
-                            # شکستن متن به خطوط
                             lines = wrap_text_to_lines(text_draw, bidi_text, font, max_width)
                             
-                            # محاسبه ارتفاع کل متن
-                            # فاصله بین خطوط را به درصدی از ارتفاع فونت تنظیم می‌کنیم
                             line_spacing_factor = st.session_state.line_spacing_percent / 100
                             line_height = int(font_size * line_spacing_factor)
                             total_text_height = line_height * len(lines)
                             
-                            # محاسبه موقعیت شروع متن - نسبت به ابعاد تمپلیت
-                            # برای موقعیت افقی (x): 0% یعنی چپ، 50% یعنی وسط و 100% یعنی راست تمپلیت
-                            # برای موقعیت عمودی (y): 0% یعنی بالا، 50% یعنی وسط و 100% یعنی پایین تمپلیت
                             start_y = int((template_height - total_text_height) * (st.session_state.text_y_percent / 100))
                             
-                            # رسم هر خط متن روی تصویر شفاف
                             for i, line in enumerate(lines):
                                 line_width = text_draw.textlength(line, font=font)
-                                # محاسبه موقعیت افقی متن نسبت به عرض تمپلیت
                                 line_x = int((template_width - line_width) * (st.session_state.text_x_percent / 100))
                                 line_y = start_y + i * line_height
                                 text_draw.text((line_x, line_y), line, font=font, fill=st.session_state.text_color)
                             
-                            # ترکیب تصویر متن با تصویر اصلی
                             preview_image = Image.alpha_composite(preview_image, text_image)
                         except Exception as e:
                             st.error(f"خطا در بارگذاری فونت: {str(e)}")
-                            # استفاده از فونت پیش‌فرض در صورت خطا
-                            font = ImageFont.load_default()
-                            st.warning("از فونت پیش‌فرض استفاده شد. متن چندخطی با این فونت پشتیبانی نمی‌شود.")
-                            draw.text((10, 10), bidi_text, font=font, fill=st.session_state.text_color)
                     
                     # نمایش تصویر با سایز محدود شده
                     st.image(preview_image, caption=f"پیش‌نمایش ({template_width}x{template_height})", width=300)
                     
-                    # ذخیره تصویر با سایز اصلی
                     final_image = preview_image.copy()
                     final_image.save("output.png", quality=100)
                     
-                    # ایجاد دکمه دانلود
                     with open("output.png", "rb") as file:
                         btn = st.download_button(
                             label="⬇️ دانلود تصویر",
@@ -1738,14 +1753,18 @@ else:
                     
                     st.success(f"✅ تصویر با موفقیت ساخته شد! (سایز: {template_width}x{template_height})")
                     
+                    # ذخیره تصویر با سایز اصلی
+                    final_image = preview_image.copy()
+                    final_image.save("output.png", quality=100)
+                    
                 except Exception as e:
                     st.error(f"❌ خطا در ساخت تصویر: {str(e)}")
                     st.error("جزئیات خطا:")
                     st.code(traceback.format_exc())
             else:
-                st.error("❌ لطفاً ابتدا یک تمپلیت انتخاب کنید و حداقل یک لایه یا متن وارد کنید!")
+                st.error("❌ لطفاً ابتدا یک تمپلیت انتخاب کنید و حداقل یک لایه، عنوان یا متن وارد کنید!")
         else:
-            st.warning("⚠️ لطفاً ابتدا یک تمپلیت انتخاب کنید یا یک تمپلیت جدید آپلود کنید.") 
+            st.warning("⚠️ لطفاً ابتدا یک تمپلیت انتخاب کنید یا یک تمپلیت جدید آپلود کنید.")
 
 # تابع تست و debug برای متن فارسی
 def debug_persian_text(text):
