@@ -1569,7 +1569,7 @@ else:
                     # اضافه کردن عنوان
                     if st.session_state.title_text:
                         title_bidi_text = process_persian_text(st.session_state.title_text)
-                        title_font_size = int(template_height * (st.session_state.title_font_size_percent / 100))
+                        title_font_size = st.session_state.title_font_size_percent  # استفاده مستقیم از پیکسل
                         
                         try:
                             title_font_path = FONT_BOLD_PATH if st.session_state.title_is_bold else FONT_PATH
@@ -1600,7 +1600,7 @@ else:
                     # اضافه کردن متن
                     if st.session_state.text:
                         bidi_text = process_persian_text(st.session_state.text)
-                        font_size = int(template_height * (st.session_state.font_size_percent / 100))
+                        font_size = st.session_state.font_size_percent  # استفاده مستقیم از پیکسل
                         
                         try:
                             font_path = FONT_BOLD_PATH if st.session_state.is_bold else FONT_PATH
