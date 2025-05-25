@@ -556,483 +556,310 @@ if st.session_state.current_page == 'settings':
                 st.info("🔍 هنوز تمپلیتی ذخیره نشده است. لطفاً از تب آپلود، یک تمپلیت جدید اضافه کنید.")
         
         with template_tab2:
+            st.markdown("### 📁 آپلود تمپلیت جدید")
+            
+            # فرم آپلود تمپلیت
             template_file = st.file_uploader("تمپلیت جدید را انتخاب کنید", type=["png", "jpg", "jpeg"], help="یک تصویر تمپلیت با فرمت PNG یا JPEG آپلود کنید")
             template_name = st.text_input("نام تمپلیت (اختیاری)", help="اگر خالی بماند، از نام فایل استفاده می‌شود")
             
             if template_file:
                 try:
-                    # نمایش پیش‌نمایش
+                    # نمایش پیش‌نمایش تمپلیت
                     template_preview = Image.open(template_file)
                     
-                    # ایجاد کلیدهای session_state برای پیش‌نمایش
-                    if "preview_template" not in st.session_state:
-                        st.session_state.preview_template = template_preview
-                    else:
-                        st.session_state.preview_template = template_preview
+                    col1, col2 = st.columns([1, 1])
+                    with col1:
+                        st.image(template_preview, caption="پیش‌نمایش تمپلیت جدید", width=300)
+                        
+                        # دکمه refresh برای پیش‌نمایش
+                        if st.button("🔄 بروزرسانی پیش‌نمایش", key="refresh_template_preview"):
+                            st.rerun()
                     
-                    if "preview_layers" not in st.session_state:
-                        st.session_state.preview_layers = []
-                    
-                    if "preview_text" not in st.session_state:
-                        st.session_state.preview_text = ""
-                    
-                    # نمایش تمپلیت آپلود شده
-                    st.image(template_preview, caption="پیش‌نمایش تمپلیت جدید", width=300)
-                    
-                    # تب‌های پیش‌نمایش و تنظیمات
-                    preview_tab1, preview_tab2, preview_tab3 = st.tabs(["⚙️ تنظیمات پیش‌فرض", "🖼️ پیش‌نمایش با لایه‌ها", "📝 پیش‌نمایش با متن"])
-                    
-                    with preview_tab1:
-                        # تنظیمات پیش‌فرض تمپلیت
+                    with col2:
+                        st.markdown("### ⚙️ تنظیمات پیش‌فرض")
                         st.info("تنظیمات پیش‌فرض برای این تمپلیت، هنگام استفاده از آن به‌طور خودکار اعمال خواهند شد.")
                         
-                        # تنظیمات مربوط به متن
-                        st.subheader("📝 تنظیمات متن")
-                        default_font_col1, default_font_col2 = st.columns(2)
-                        with default_font_col1:
-                            default_font_size = st.slider("سایز فونت (% ارتفاع تصویر)", 1, 20, 4, key="default_font_size", help="سایز فونت به صورت درصدی از ارتفاع تصویر")
-                            default_text_x = st.slider("موقعیت افقی متن (%)", 0, 100, 50, key="default_text_x", help="0: کاملاً چپ تمپلیت، 50: وسط تمپلیت، 100: کاملاً راست تمپلیت")
+                        # تنظیمات اساسی عنوان
+                        st.markdown("**🏷️ تنظیمات عنوان:**")
+                        title_col1, title_col2 = st.columns(2)
+                        with title_col1:
+                            default_title_font_size = st.slider("سایز فونت عنوان (% ارتفاع)", 1, 20, 6, key="default_title_font_size")
+                            default_title_x = st.slider("موقعیت افقی عنوان (%)", 0, 100, 50, key="default_title_x")
+                        with title_col2:
+                            default_title_y = st.slider("موقعیت عمودی عنوان (%)", 0, 100, 10, key="default_title_y")
+                            default_title_color = st.color_picker("رنگ عنوان", "#000000", key="default_title_color")
                         
-                        with default_font_col2:
-                            default_text_y = st.slider("موقعیت عمودی متن (%)", 0, 100, 98, key="default_text_y", help="0: کاملاً بالای تمپلیت، 50: وسط تمپلیت، 100: کاملاً پایین تمپلیت")
-                            default_text_color = st.color_picker("رنگ پیش‌فرض متن", "#000000", key="default_text_color")
+                        default_title_is_bold = st.checkbox("عنوان بولد", value=True, key="default_title_is_bold")
                         
-                        # تنظیمات پیشرفته متن - به جای expander از checkbox استفاده می‌کنیم
-                        show_advanced_text_settings = st.checkbox("نمایش تنظیمات پیشرفته متن", value=False, key="show_advanced_text")
-                        if show_advanced_text_settings:
-                            default_max_text_width = st.slider("عرض متن (%)", 10, 100, 80, key="default_max_text_width", help="حداکثر عرض متن به صورت درصدی از عرض تمپلیت")
-                            default_line_spacing = st.slider("فاصله خطوط (%)", 100, 200, 120, key="default_line_spacing", help="فاصله بین خطوط متن به صورت درصدی از ارتفاع خط")
-                            default_is_bold = st.checkbox("متن بولد", value=False, key="default_is_bold", help="نمایش متن به صورت بولد")
-                        else:
-                            # مقادیر پیش‌فرض برای زمانی که تنظیمات پیشرفته نمایش داده نمی‌شود
-                            if "default_max_text_width" not in st.session_state:
-                                st.session_state.default_max_text_width = 80
-                            if "default_line_spacing" not in st.session_state:
-                                st.session_state.default_line_spacing = 120
-                            if "default_is_bold" not in st.session_state:
-                                st.session_state.default_is_bold = False
+                        # تنظیمات اساسی متن
+                        st.markdown("**📝 تنظیمات متن:**")
+                        default_font_size = st.slider("سایز فونت (% ارتفاع)", 1, 20, 4, key="default_font_size")
+                        default_text_color = st.color_picker("رنگ متن", "#000000", key="default_text_color")
                         
-                        # تنظیمات مربوط به لایه‌ها
-                        st.subheader("🖼️ تنظیمات لایه‌ها")
-                        default_layer_col1, default_layer_col2 = st.columns(2)
-                        with default_layer_col1:
-                            default_layer_x = st.slider("موقعیت افقی لایه (%)", 0, 100, 50, key="default_layer_x", help="0: چپ، 50: وسط، 100: راست")
-                            default_layer_size = st.slider("اندازه لایه (%)", 10, 300, 100, key="default_layer_size", help="سایز تصویر به صورت درصدی از کوچکترین بعد تمپلیت")
+                        # تنظیمات موقعیت متن
+                        pos_col1, pos_col2 = st.columns(2)
+                        with pos_col1:
+                            default_text_x = st.slider("موقعیت افقی (%)", 0, 100, 50, key="default_text_x")
+                        with pos_col2:
+                            default_text_y = st.slider("موقعیت عمودی (%)", 0, 100, 98, key="default_text_y")
                         
-                        with default_layer_col2:
-                            default_layer_y = st.slider("موقعیت عمودی لایه (%)", 0, 100, 0, key="default_layer_y", help="0: بالا، 50: وسط، 100: پایین")
-                            default_layer_opacity = st.slider("شفافیت لایه (%)", 0, 100, 100, key="default_layer_opacity", help="شفافیت تصویر (0: کاملاً شفاف، 100: کاملاً مات)")
+                        # تنظیمات اساسی لایه
+                        st.markdown("**🖼️ تنظیمات لایه:**")
+                        layer_col1, layer_col2 = st.columns(2)
+                        with layer_col1:
+                            default_layer_x = st.slider("موقعیت افقی لایه (%)", 0, 100, 50, key="default_layer_x")
+                            default_layer_size = st.slider("اندازه لایه (%)", 10, 300, 100, key="default_layer_size")
+                        with layer_col2:
+                            default_layer_y = st.slider("موقعیت عمودی لایه (%)", 0, 100, 0, key="default_layer_y")
+                            default_layer_opacity = st.slider("شفافیت لایه (%)", 0, 100, 100, key="default_layer_opacity")
                     
-                    with preview_tab2:
-                        # پیش‌نمایش با لایه‌ها
-                        st.subheader("پیش‌نمایش با لایه‌ها")
-                        st.info("در این بخش می‌توانید لایه اضافه کنید و نتیجه تنظیمات پیش‌فرض روی آن را ببینید. این لایه‌ها فقط برای پیش‌نمایش هستند و ذخیره نمی‌شوند.")
-                        
-                        # دکمه افزودن لایه آزمایشی
-                        if st.button("➕ افزودن لایه آزمایشی", key="add_preview_layer"):
-                            preview_layer = Layer(f"لایه آزمایشی {len(st.session_state.preview_layers) + 1}")
-                            # اعمال تنظیمات پیش‌فرض
-                            preview_layer.x_percent = st.session_state.default_layer_x
-                            preview_layer.y_percent = st.session_state.default_layer_y
-                            preview_layer.size_percent = st.session_state.default_layer_size
-                            preview_layer.opacity = st.session_state.default_layer_opacity
-                            st.session_state.preview_layers.append(preview_layer)
-                            st.rerun()
-                        
-                        # نمایش لایه‌های موجود
-                        has_layer_with_image = False
-                        for i, layer in enumerate(st.session_state.preview_layers):
-                            with st.container():
-                                st.markdown(f"#### 🖼️ {layer.name}")
-                                
-                                # آپلود تصویر برای لایه
-                                uploaded_file = st.file_uploader(
-                                    "تصویر را انتخاب کنید",
-                                    type=["png", "jpg", "jpeg"],
-                                    key=f"preview_layer_{i}_upload",
-                                    help="تصویری که می‌خواهید در این لایه قرار دهید را آپلود کنید"
-                                )
-                                
-                                if uploaded_file:
-                                    try:
-                                        # ایجاد کلید یکتا برای تصویر
-                                        if layer.image_key != uploaded_file.name:
-                                            layer.image_key = uploaded_file.name
-                                            layer.image = Image.open(uploaded_file)
-                                            st.rerun()
-                                        st.image(layer.image, caption="پیش‌نمایش تصویر", width=200)
-                                        has_layer_with_image = True
-                                    except Exception as e:
-                                        st.error(f"خطا در بارگذاری تصویر: {str(e)}")
-                                
-                                if layer.image:
-                                    # تنظیمات لایه - تغییرات مقادیر و ساخت پیش‌نمایش زنده
-                                    layer_settings_col1, layer_settings_col2 = st.columns(2)
-                                    with layer_settings_col1:
-                                        # ذخیره مقدار قبلی در متغیر موقت
-                                        temp_x = layer.x_percent
-                                        layer.x_percent = st.slider(
-                                            "موقعیت افقی (%)", 
-                                            0, 100, temp_x, 
-                                            key=f"layer_{i}_x_slider", 
-                                            help="0: چپ، 50: وسط، 100: راست"
-                                        )
-                                        
-                                        temp_size = layer.size_percent
-                                        layer.size_percent = st.slider(
-                                            "اندازه (%)", 
-                                            10, 300, temp_size, 
-                                            key=f"layer_{i}_size_slider", 
-                                            help="سایز تصویر به صورت درصدی از کوچکترین بعد تمپلیت"
-                                        )
-                                    
-                                    with layer_settings_col2:
-                                        temp_y = layer.y_percent
-                                        layer.y_percent = st.slider(
-                                            "موقعیت عمودی (%)", 
-                                            0, 100, temp_y, 
-                                            key=f"layer_{i}_y_slider", 
-                                            help="0: بالا، 50: وسط، 100: پایین"
-                                        )
-                                        
-                                        temp_opacity = layer.opacity
-                                        layer.opacity = st.slider(
-                                            "شفافیت (%)", 
-                                            0, 100, temp_opacity, 
-                                            key=f"layer_{i}_opacity_slider", 
-                                            help="شفافیت تصویر (0: کاملاً شفاف، 100: کاملاً مات)"
-                                        )
-                                
-                                # دکمه حذف لایه
-                                if st.button("🗑️ حذف لایه", key=f"preview_layer_{i}_delete"):
-                                    st.session_state.preview_layers.pop(i)
-                                    st.rerun()
-                                
-                                st.markdown("---")
-                        
-                        # ساخت پیش‌نمایش زنده با همه لایه‌ها
-                        if has_layer_with_image and st.session_state.preview_layers:
-                            st.subheader("پیش‌نمایش ترکیب تمام لایه‌ها")
-                            try:
-                                # ایجاد پیش‌نمایش با تمپلیت و همه لایه‌ها
-                                template_width, template_height = template_preview.size
-                                min_dimension = min(template_width, template_height)
-                                
-                                # ایجاد یک تصویر پایه خالی
-                                preview_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 255))
-                                
-                                # اضافه کردن لایه‌ها به زمینه سفید
-                                for layer in st.session_state.preview_layers:
-                                    if layer.image:
-                                        # محاسبه سایز تصویر بر اساس درصد کوچکترین بعد تمپلیت
-                                        max_dimension = int(min_dimension * (layer.size_percent / 100))
-                                        
-                                        # تغییر سایز تصویر لایه با حفظ نسبت تصویر
-                                        original_width, original_height = layer.image.size
-                                        aspect_ratio = original_width / original_height
-                                        
-                                        if aspect_ratio >= 1:  # عرض بزرگتر یا مساوی ارتفاع است
-                                            new_width = max_dimension
-                                            new_height = int(max_dimension / aspect_ratio)
-                                        else:  # ارتفاع بزرگتر از عرض است
-                                            new_height = max_dimension
-                                            new_width = int(max_dimension * aspect_ratio)
-                                        
-                                        # تغییر سایز انجام می‌شود (بزرگنمایی)
-                                        layer_image = layer.image.resize((new_width, new_height), Image.LANCZOS)
-                                        
-                                        # تبدیل به RGBA اگر PNG است
-                                        if layer_image.mode != 'RGBA':
-                                            layer_image = layer_image.convert('RGBA')
-                                        
-                                        # اعمال شفافیت
-                                        if layer.opacity < 100:
-                                            layer_image.putalpha(int(255 * layer.opacity / 100))
-                                        
-                                        # محاسبه موقعیت مرکز تصویر
-                                        img_x = int((template_width - new_width) * (layer.x_percent / 100))
-                                        img_y = int((template_height - new_height) * (layer.y_percent / 100))
-                                        
-                                        # اضافه کردن تصویر به پیش‌نمایش
-                                        preview_image.paste(layer_image, (img_x, img_y), layer_image)
-                                
-                                # اضافه کردن تمپلیت به عنوان لایه بالایی (بالاتر از لایه‌های تصویر)
-                                if template.mode == 'RGBA':
-                                    # اگر تمپلیت شفافیت داشته باشد، با حفظ شفافیت روی تصویر قرار می‌گیرد
-                                    preview_image = Image.alpha_composite(preview_image, template)
-                                else:
-                                    # تبدیل تمپلیت به RGBA
-                                    template_rgba = template.convert('RGBA')
-                                    preview_image = Image.alpha_composite(preview_image, template_rgba)
-                                
-                                # اضافه کردن عنوان به عنوان لایه بالایی (روی همه چیز، حتی تمپلیت)
-                                if st.session_state.title_text:
-                                    # آماده‌سازی عنوان فارسی
-                                    title_bidi_text = process_persian_text(st.session_state.title_text)
-                                    
-                                    # محاسبه سایز فونت بر اساس درصد ارتفاع
-                                    title_font_size = int(template_height * (st.session_state.title_font_size_percent / 100))
-                                    
-                                    try:
-                                        # انتخاب فونت مناسب بر اساس وضعیت بولد
-                                        title_font_path = FONT_BOLD_PATH if st.session_state.title_is_bold else FONT_PATH
-                                        title_font = ImageFont.truetype(title_font_path, title_font_size)
-                                        
-                                        # ایجاد یک تصویر شفاف برای عنوان
-                                        title_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 0))
-                                        title_draw = ImageDraw.Draw(title_image)
-                                        
-                                        # محاسبه حداکثر عرض عنوان
-                                        title_max_width = template_width * (st.session_state.title_max_text_width_percent / 100)
-                                        
-                                        # شکستن عنوان به خطوط
-                                        title_lines = wrap_text_to_lines(title_draw, title_bidi_text, title_font, title_max_width)
-                                        
-                                        # محاسبه ارتفاع کل عنوان
-                                        title_line_spacing_factor = st.session_state.title_line_spacing_percent / 100
-                                        title_line_height = int(title_font_size * title_line_spacing_factor)
-                                        title_total_text_height = title_line_height * len(title_lines)
-                                        
-                                        # محاسبه موقعیت شروع عنوان
-                                        title_start_y = int((template_height - title_total_text_height) * (st.session_state.title_text_y_percent / 100))
-                                        
-                                        # رسم هر خط عنوان
-                                        for i, line in enumerate(title_lines):
-                                            line_width = title_draw.textlength(line, font=title_font)
-                                            line_x = int((template_width - line_width) * (st.session_state.title_text_x_percent / 100))
-                                            line_y = title_start_y + i * title_line_height
-                                            title_draw.text((line_x, line_y), line, font=title_font, fill=st.session_state.title_text_color)
-                                        
-                                        # ترکیب تصویر عنوان با تصویر اصلی
-                                        preview_image = Image.alpha_composite(preview_image, title_image)
-                                    except Exception as e:
-                                        st.error(f"خطا در بارگذاری فونت عنوان: {str(e)}")
-
-                                # نمایش نتیجه
-                                st.image(preview_image, caption="پیش‌نمایش ترکیب تمام لایه‌ها با تمپلیت", width=300)
-                                
-                            except Exception as e:
-                                st.error(f"خطا در ساخت پیش‌نمایش ترکیبی: {str(e)}")
-                                st.error("جزئیات خطا:")
-                                st.code(traceback.format_exc())
-                        
-                        # دکمه پاک کردن همه لایه‌ها
-                        if st.session_state.preview_layers:
-                            if st.button("🗑️ پاک کردن همه لایه‌ها", key="clear_all_preview_layers"):
-                                st.session_state.preview_layers = []
-                                st.rerun()
-                    
-                    with preview_tab3:
-                        # پیش‌نمایش با متن
-                        st.subheader("پیش‌نمایش با متن")
-                        st.info("در این بخش می‌توانید متن اضافه کنید و نتیجه تنظیمات پیش‌فرض روی آن را ببینید. این متن فقط برای پیش‌نمایش است و ذخیره نمی‌شود.")
-                        
-                        # ایجاد متغیرهای جدید در session_state برای پیش‌نمایش متن
-                        if 'preview_font_size' not in st.session_state:
-                            st.session_state.preview_font_size = st.session_state.default_font_size
-                        if 'preview_text_x' not in st.session_state:
-                            st.session_state.preview_text_x = st.session_state.default_text_x
-                        if 'preview_text_y' not in st.session_state:
-                            st.session_state.preview_text_y = st.session_state.default_text_y
-                        if 'preview_text_color' not in st.session_state:
-                            st.session_state.preview_text_color = st.session_state.default_text_color
-                        if 'preview_max_text_width' not in st.session_state:
-                            st.session_state.preview_max_text_width = st.session_state.default_max_text_width
-                        if 'preview_line_spacing' not in st.session_state:
-                            st.session_state.preview_line_spacing = st.session_state.default_line_spacing
-                        if 'preview_is_bold' not in st.session_state:
-                            st.session_state.preview_is_bold = st.session_state.default_is_bold
-                        
-                        # ورود متن آزمایشی
-                        preview_text = st.text_area("متن آزمایشی را وارد کنید", value=st.session_state.preview_text, height=150)
-                        
-                        # ذخیره متن در session state
-                        if preview_text != st.session_state.preview_text:
-                            st.session_state.preview_text = preview_text
-                            st.rerun()  # رفرش صفحه برای بروزرسانی پیش‌نمایش
-                        
-                        # نمایش پیش‌نمایش متن اگر متن وارد شده باشد
-                        if st.session_state.preview_text:
-                            st.subheader("تنظیمات و پیش‌نمایش")
-                            
-                            # تنظیمات متن با پیش‌نمایش زنده
-                            text_settings_col1, text_settings_col2 = st.columns(2)
-                            with text_settings_col1:
-                                st.session_state.preview_font_size = st.slider(
-                                    "سایز فونت (% ارتفاع تصویر)", 
-                                    1, 20, st.session_state.preview_font_size, 
-                                    key="preview_font_size_slider", 
-                                    help="سایز فونت به صورت درصدی از ارتفاع تصویر"
-                                )
-                                st.session_state.preview_text_x = st.slider(
-                                    "موقعیت افقی متن (%)", 
-                                    0, 100, st.session_state.preview_text_x, 
-                                    key="preview_text_x_slider", 
-                                    help="0: کاملاً چپ تمپلیت، 50: وسط تمپلیت، 100: کاملاً راست تمپلیت"
-                                 )
-                            
-                            with text_settings_col2:
-                                st.session_state.preview_text_y = st.slider(
-                                    "موقعیت عمودی متن (%)", 
-                                    0, 100, st.session_state.preview_text_y, 
-                                    key="preview_text_y_slider", 
-                                    help="0: کاملاً بالای تمپلیت، 50: وسط تمپلیت، 100: کاملاً پایین تمپلیت"
-                                 )
-                                st.session_state.preview_text_color = st.color_picker(
-                                    "رنگ متن", 
-                                    st.session_state.preview_text_color, 
-                                    key="preview_text_color_picker"
-                                 )
-                            
-                            # تنظیمات پیشرفته متن با پیش‌نمایش زنده
-                            preview_show_advanced = st.checkbox("نمایش تنظیمات پیشرفته متن", value=False, key="preview_show_advanced")
-                            if preview_show_advanced:
-                                adv_col1, adv_col2 = st.columns(2)
-                                with adv_col1:
-                                    st.session_state.preview_max_text_width = st.slider(
-                                        "عرض متن (%)", 
-                                        10, 100, st.session_state.preview_max_text_width, 
-                                        key="preview_max_width_slider", 
-                                        help="حداکثر عرض متن به صورت درصدی از عرض تمپلیت"
-                                     )
-                                
-                                with adv_col2:
-                                    st.session_state.preview_line_spacing = st.slider(
-                                        "فاصله خطوط (%)", 
-                                        100, 200, st.session_state.preview_line_spacing, 
-                                        key="preview_line_spacing_slider", 
-                                        help="فاصله بین خطوط متن به صورت درصدی از ارتفاع خط"
-                                     )
-                                
-                                st.session_state.preview_is_bold = st.checkbox(
-                                    "متن بولد", 
-                                    value=st.session_state.preview_is_bold, 
-                                    key="preview_is_bold_checkbox", 
-                                    help="نمایش متن به صورت بولد"
-                                 )
-                            
-                            # دکمه اعمال تنظیمات به عنوان پیش‌فرض
-                            if st.button("اعمال این تنظیمات به عنوان پیش‌فرض", key="apply_preview_settings"):
-                                st.session_state.default_font_size = st.session_state.preview_font_size
-                                st.session_state.default_text_x = st.session_state.preview_text_x
-                                st.session_state.default_text_y = st.session_state.preview_text_y
-                                st.session_state.default_text_color = st.session_state.preview_text_color
-                                st.session_state.default_max_text_width = st.session_state.preview_max_text_width
-                                st.session_state.default_line_spacing = st.session_state.preview_line_spacing
-                                st.session_state.default_is_bold = st.session_state.preview_is_bold
-                                st.success("✅ تنظیمات به عنوان پیش‌فرض اعمال شدند.")
-                            
-                            # ساخت پیش‌نمایش زنده با متن
-                            try:
-                                # ایجاد پیش‌نمایش با تمپلیت و متن
-                                template_width, template_height = template_preview.size
-                                
-                                # ایجاد یک تصویر پایه خالی
-                                preview_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 255))
-                                
-                                # اضافه کردن تمپلیت
-                                if template_preview.mode == 'RGBA':
-                                    preview_image = Image.alpha_composite(preview_image, template_preview)
-                                else:
-                                    template_rgba = template_preview.convert('RGBA')
-                                    preview_image = Image.alpha_composite(preview_image, template_rgba)
-                                
-                                # آماده‌سازی متن فارسی
-                                bidi_text = process_persian_text(st.session_state.preview_text)
-                                
-                                # محاسبه سایز فونت بر اساس درصد ارتفاع
-                                font_size = int(template_height * (st.session_state.preview_font_size / 100))
-                                
-                                # انتخاب فونت مناسب
-                                font_path = FONT_BOLD_PATH if st.session_state.preview_is_bold else FONT_PATH
-                                font = ImageFont.truetype(font_path, font_size)
-                                
-                                # ایجاد یک تصویر شفاف برای متن
-                                text_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 0))
-                                text_draw = ImageDraw.Draw(text_image)
-                                
-                                # محاسبه حداکثر عرض متن
-                                max_width = template_width * (st.session_state.preview_max_text_width / 100)
-                                
-                                # شکستن متن به خطوط
-                                lines = wrap_text_to_lines(text_draw, bidi_text, font, max_width)
-                                
-                                # محاسبه ارتفاع کل متن
-                                line_spacing_factor = st.session_state.preview_line_spacing / 100
-                                line_height = int(font_size * line_spacing_factor)
-                                total_text_height = line_height * len(lines)
-                                
-                                # محاسبه موقعیت شروع متن
-                                start_y = int((template_height - total_text_height) * (st.session_state.preview_text_y / 100))
-                                
-                                # رسم هر خط متن
-                                for i, line in enumerate(lines):
-                                    line_width = text_draw.textlength(line, font=font)
-                                    line_x = int((template_width - line_width) * (st.session_state.preview_text_x / 100))
-                                    line_y = start_y + i * line_height
-                                    text_draw.text((line_x, line_y), line, font=font, fill=st.session_state.preview_text_color)
-                                
-                                # ترکیب تصویر متن با تصویر اصلی
-                                preview_image = Image.alpha_composite(preview_image, text_image)
-                                
-                                # نمایش نتیجه
-                                st.image(preview_image, caption="پیش‌نمایش نهایی با متن", width=300)
-                                
-                            except Exception as e:
-                                st.error(f"خطا در ساخت پیش‌نمایش متن: {str(e)}")
-                                st.error("جزئیات خطا:")
-                                st.code(traceback.format_exc())
-                        else:
-                            st.warning("لطفاً ابتدا متنی وارد کنید تا پیش‌نمایش را ببینید.")
-
-                    # دکمه ذخیره تمپلیت
+                    # تنظیمات پیشرفته (اختیاری)
                     st.markdown("---")
-                    if st.button("💾 ذخیره این تمپلیت"):
-                        # تعیین نام فایل برای ذخیره
-                        if template_name:
-                            # اطمینان از داشتن پسوند مناسب
-                            if not (template_name.endswith('.png') or template_name.endswith('.jpg') or template_name.endswith('.jpeg')):
-                                template_name += '.' + template_file.name.split('.')[-1]
+                    show_advanced = st.checkbox("نمایش تنظیمات پیشرفته", value=False, key="show_advanced_template")
+                    if show_advanced:
+                        adv_col1, adv_col2 = st.columns(2)
+                        with adv_col1:
+                            st.markdown("**تنظیمات پیشرفته عنوان:**")
+                            default_title_max_width = st.slider("عرض عنوان (%)", 10, 100, 80, key="default_title_max_width")
+                            default_title_line_spacing = st.slider("فاصله خطوط عنوان (%)", 100, 200, 120, key="default_title_line_spacing")
+                        with adv_col2:
+                            st.markdown("**تنظیمات پیشرفته متن:**")
+                            default_max_text_width = st.slider("عرض متن (%)", 10, 100, 80, key="default_max_text_width")
+                            default_line_spacing = st.slider("فاصله خطوط متن (%)", 100, 200, 120, key="default_line_spacing")
+                        
+                        default_is_bold = st.checkbox("متن بولد", value=False, key="default_is_bold")
+                    else:
+                        # مقادیر پیش‌فرض
+                        default_title_max_width = 80
+                        default_title_line_spacing = 120
+                        default_max_text_width = 80
+                        default_line_spacing = 120
+                        default_is_bold = False
+                    
+                    # بخش تست و پیش‌نمایش
+                    st.markdown("---")
+                    st.markdown("### 🧪 تست و پیش‌نمایش تنظیمات")
+                    st.info("در این بخش می‌توانید تنظیمات را با متن و لایه نمونه تست کنید.")
+                    
+                    # ایجاد دو ستون برای تست
+                    test_col1, test_col2 = st.columns([1, 1])
+                    
+                    with test_col1:
+                        st.markdown("**📝 متن‌های نمونه:**")
+                        
+                        # متن نمونه عنوان
+                        test_title = st.text_input(
+                            "عنوان نمونه:",
+                            value="عنوان تست",
+                            key="test_title_input",
+                            help="عنوان نمونه برای تست تنظیمات"
+                        )
+                        
+                        # متن نمونه اصلی
+                        test_text = st.text_area(
+                            "متن نمونه:",
+                            value="این یک متن نمونه برای تست تنظیمات است.\nمی‌توانید چندین خط متن وارد کنید.",
+                            height=100,
+                            key="test_text_input",
+                            help="متن نمونه برای تست تنظیمات"
+                        )
+                        
+                        # آپلود لایه نمونه (اختیاری)
+                        st.markdown("**🖼️ لایه نمونه (اختیاری):**")
+                        test_layer_file = st.file_uploader(
+                            "تصویر نمونه برای لایه:",
+                            type=["png", "jpg", "jpeg"],
+                            key="test_layer_upload",
+                            help="یک تصویر نمونه برای تست لایه آپلود کنید (اختیاری)"
+                        )
+                        
+                        # دکمه بروزرسانی پیش‌نمایش
+                        if st.button("🔄 بروزرسانی پیش‌نمایش تست", key="refresh_test_preview"):
+                            st.rerun()
+                    
+                    with test_col2:
+                        st.markdown("**👁️ پیش‌نمایش تست:**")
+                        
+                        # ایجاد پیش‌نمایش تست
+                        try:
+                            # محاسبه ابعاد تصویر
+                            template_width, template_height = template_preview.size
+                            min_dimension = min(template_width, template_height)
+                            
+                            # ایجاد یک تصویر پایه خالی (سفید)
+                            test_preview_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 255))
+                            
+                            # اضافه کردن لایه نمونه اگر آپلود شده
+                            if test_layer_file:
+                                try:
+                                    test_layer_image = Image.open(test_layer_file)
+                                    
+                                    # محاسبه سایز تصویر بر اساس درصد کوچکترین بعد تمپلیت
+                                    max_dimension = int(min_dimension * (default_layer_size / 100))
+                                    
+                                    # تغییر سایز تصویر لایه با حفظ نسبت تصویر
+                                    original_width, original_height = test_layer_image.size
+                                    aspect_ratio = original_width / original_height
+                                    
+                                    if aspect_ratio >= 1:
+                                        new_width = max_dimension
+                                        new_height = int(max_dimension / aspect_ratio)
+                                    else:
+                                        new_height = max_dimension
+                                        new_width = int(max_dimension * aspect_ratio)
+                                    
+                                    test_layer_image = test_layer_image.resize((new_width, new_height), Image.LANCZOS)
+                                    
+                                    # تبدیل به RGBA
+                                    if test_layer_image.mode != 'RGBA':
+                                        test_layer_image = test_layer_image.convert('RGBA')
+                                    
+                                    # اعمال شفافیت
+                                    if default_layer_opacity < 100:
+                                        test_layer_image.putalpha(int(255 * default_layer_opacity / 100))
+                                    
+                                    # محاسبه موقعیت
+                                    img_x = int((template_width - new_width) * (default_layer_x / 100))
+                                    img_y = int((template_height - new_height) * (default_layer_y / 100))
+                                    
+                                    # اضافه کردن تصویر به پیش‌نمایش
+                                    test_preview_image.paste(test_layer_image, (img_x, img_y), test_layer_image)
+                                except Exception as e:
+                                    st.warning(f"خطا در پردازش لایه نمونه: {str(e)}")
+                            
+                            # اضافه کردن تمپلیت به عنوان لایه بالایی
+                            if template_preview.mode == 'RGBA':
+                                test_preview_image = Image.alpha_composite(test_preview_image, template_preview)
+                            else:
+                                template_rgba = template_preview.convert('RGBA')
+                                test_preview_image = Image.alpha_composite(test_preview_image, template_rgba)
+                            
+                            # اضافه کردن عنوان نمونه
+                            if test_title:
+                                title_bidi_text = process_persian_text(test_title)
+                                title_font_size = int(template_height * (default_title_font_size / 100))
+                                
+                                try:
+                                    title_font_path = FONT_BOLD_PATH if default_title_is_bold else FONT_PATH
+                                    title_font = ImageFont.truetype(title_font_path, title_font_size)
+                                    
+                                    title_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 0))
+                                    title_draw = ImageDraw.Draw(title_image)
+                                    
+                                    title_max_width = template_width * (default_title_max_width / 100)
+                                    title_lines = wrap_text_to_lines(title_draw, title_bidi_text, title_font, title_max_width)
+                                    
+                                    title_line_spacing_factor = default_title_line_spacing / 100
+                                    title_line_height = int(title_font_size * title_line_spacing_factor)
+                                    title_total_text_height = title_line_height * len(title_lines)
+                                    
+                                    title_start_y = int((template_height - title_total_text_height) * (default_title_y / 100))
+                                    
+                                    for i, line in enumerate(title_lines):
+                                        line_width = title_draw.textlength(line, font=title_font)
+                                        line_x = int((template_width - line_width) * (default_title_x / 100))
+                                        line_y = title_start_y + i * title_line_height
+                                        title_draw.text((line_x, line_y), line, font=title_font, fill=default_title_color)
+                                    
+                                    test_preview_image = Image.alpha_composite(test_preview_image, title_image)
+                                except Exception as e:
+                                    st.warning(f"خطا در رندر عنوان: {str(e)}")
+                            
+                            # اضافه کردن متن نمونه
+                            if test_text:
+                                bidi_text = process_persian_text(test_text)
+                                font_size = int(template_height * (default_font_size / 100))
+                                
+                                try:
+                                    font_path = FONT_BOLD_PATH if default_is_bold else FONT_PATH
+                                    font = ImageFont.truetype(font_path, font_size)
+                                    
+                                    text_image = Image.new('RGBA', (template_width, template_height), (255, 255, 255, 0))
+                                    text_draw = ImageDraw.Draw(text_image)
+                                    
+                                    max_width = template_width * (default_max_text_width / 100)
+                                    lines = wrap_text_to_lines(text_draw, bidi_text, font, max_width)
+                                    
+                                    line_spacing_factor = default_line_spacing / 100
+                                    line_height = int(font_size * line_spacing_factor)
+                                    total_text_height = line_height * len(lines)
+                                    
+                                    start_y = int((template_height - total_text_height) * (default_text_y / 100))
+                                    
+                                    for i, line in enumerate(lines):
+                                        line_width = text_draw.textlength(line, font=font)
+                                        line_x = int((template_width - line_width) * (default_text_x / 100))
+                                        line_y = start_y + i * line_height
+                                        text_draw.text((line_x, line_y), line, font=font, fill=default_text_color)
+                                    
+                                    test_preview_image = Image.alpha_composite(test_preview_image, text_image)
+                                except Exception as e:
+                                    st.warning(f"خطا در رندر متن: {str(e)}")
+                            
+                            # نمایش پیش‌نمایش تست
+                            st.image(test_preview_image, caption="پیش‌نمایش تست تنظیمات", width=300)
+                            
+                            # نمایش اطلاعات تکمیلی
+                            st.success("✅ پیش‌نمایش تست با موفقیت ساخته شد!")
+                            st.info(f"📏 ابعاد: {template_width}x{template_height}")
+                            
+                        except Exception as e:
+                            st.error(f"❌ خطا در ساخت پیش‌نمایش تست: {str(e)}")
+                            st.info("💡 لطفاً تنظیمات را بررسی کنید و دوباره تلاش کنید.")
+                    
+                    # دکمه ذخیره تمپلیت
+                    if st.button("💾 ذخیره تمپلیت", key="save_template_btn"):
+                        # تعیین نام تمپلیت
+                        if template_name.strip():
+                            final_template_name = template_name.strip()
                         else:
-                            template_name = template_file.name
+                            final_template_name = os.path.splitext(template_file.name)[0]
                         
-                        # مسیر ذخیره تمپلیت
-                        save_path = os.path.join(TEMPLATES_DIR, template_name)
+                        # ذخیره فایل تمپلیت
+                        template_extension = os.path.splitext(template_file.name)[1]
+                        template_save_path = os.path.join(TEMPLATES_DIR, f"{final_template_name}{template_extension}")
                         
-                        # ذخیره فایل
-                        with open(save_path, "wb") as f:
-                            f.write(template_file.getbuffer())
-                        
-                        # ذخیره تنظیمات پیش‌فرض
-                        template_settings = {
-                            "text": {
-                                "font_size_percent": st.session_state.default_font_size,
-                                "text_color": st.session_state.default_text_color,
-                                "text_x_percent": st.session_state.default_text_x,
-                                "text_y_percent": st.session_state.default_text_y,
-                                "max_text_width_percent": st.session_state.default_max_text_width,
-                                "line_spacing_percent": st.session_state.default_line_spacing,
-                                "is_bold": st.session_state.default_is_bold
-                            },
-                            "layer": {
-                                "x_percent": st.session_state.default_layer_x,
-                                "y_percent": st.session_state.default_layer_y,
-                                "size_percent": st.session_state.default_layer_size,
-                                "opacity": st.session_state.default_layer_opacity
+                        try:
+                            with open(template_save_path, "wb") as f:
+                                f.write(template_file.getbuffer())
+                            
+                            # ذخیره تنظیمات پیش‌فرض
+                            template_settings = {
+                                "title": {
+                                    "font_size_percent": default_title_font_size,
+                                    "text_color": default_title_color,
+                                    "is_bold": default_title_is_bold,
+                                    "text_x_percent": default_title_x,
+                                    "text_y_percent": default_title_y,
+                                    "max_text_width_percent": default_title_max_width,
+                                    "line_spacing_percent": default_title_line_spacing
+                                },
+                                "text": {
+                                    "font_size_percent": default_font_size,
+                                    "text_color": default_text_color,
+                                    "is_bold": default_is_bold,
+                                    "text_x_percent": default_text_x,
+                                    "text_y_percent": default_text_y,
+                                    "max_text_width_percent": default_max_text_width,
+                                    "line_spacing_percent": default_line_spacing
+                                },
+                                "layer": {
+                                    "x_percent": default_layer_x,
+                                    "y_percent": default_layer_y,
+                                    "size_percent": default_layer_size,
+                                    "opacity": default_layer_opacity
+                                }
                             }
-                        }
+                            
+                            if save_template_settings(final_template_name, template_settings):
+                                st.success(f"✅ تمپلیت '{final_template_name}' با تنظیمات پیش‌فرض ذخیره شد!")
+                                st.info("🔄 برای استفاده از تمپلیت جدید، به صفحه اصلی بروید.")
+                            else:
+                                st.warning(f"⚠️ تمپلیت ذخیره شد اما تنظیمات پیش‌فرض ذخیره نشد.")
                         
-                        template_name_without_ext = os.path.splitext(template_name)[0]
-                        save_template_settings(template_name_without_ext, template_settings)
-                        
-                        # پاک کردن لایه‌های پیش‌نمایش و متن پیش‌نمایش
-                        st.session_state.preview_layers = []
-                        st.session_state.preview_text = ""
-                        
-                        st.success(f"✅ تمپلیت با موفقیت ذخیره شد! ({template_name})")
-                        if template_settings:
-                            st.success("✅ تنظیمات پیش‌فرض برای این تمپلیت ذخیره شد.")
-                        st.info("تمپلیت جدید به لیست تمپلیت‌های موجود اضافه شد.")
+                        except Exception as e:
+                            st.error(f"❌ خطا در ذخیره تمپلیت: {str(e)}")
+                
                 except Exception as e:
                     st.error(f"خطا در بارگذاری تمپلیت: {str(e)}")
     
@@ -1101,7 +928,7 @@ if st.session_state.current_page == 'settings':
                        f"</div>", unsafe_allow_html=True)
             
             # دکمه ذخیره رنگ
-            if st.button("💾 ذخیره این رنگ"):
+            if st.button("💾 ذخیره این رنگ", key="save_color_btn"):
                 if new_color_name.strip() == "":
                     st.error("❌ لطفاً یک نام برای رنگ وارد کنید.")
                 else:
