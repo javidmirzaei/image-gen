@@ -23,28 +23,82 @@ def wrap_text_to_lines(draw, text, font, max_width):
 def process_persian_text(text):
     """
     پردازش متن فارسی با مدیریت خطا برای سرورها
+    استراتژی‌های مختلف fallback برای نمایش صحیح متن
     """
     if not text:
         return ""
     
-    try:
-        # تلاش برای پردازش صحیح متن فارسی
-        reshaped_text = arabic_reshaper.reshape(text)
-        bidi_text = get_display(reshaped_text)
-        return bidi_text
-    except Exception as e:
-        # اگر کتابخانه‌های RTL کار نکردند، از متن اصلی استفاده کن
-        print(f"خطا در پردازش متن فارسی: {str(e)}")
-        # برای متن فارسی که بدون پردازش نمایش داده می‌شود، 
-        # حداقل ترتیب کلمات را معکوس می‌کنیم
+    # بررسی تنظیم دستی کاربر
+    strategy = st.session_state.get('text_processing_strategy', 'auto')
+    
+    # اگر کاربر "متن اصلی" را انتخاب کرده، بدون تغییر برگردان
+    if strategy == "original":
+        return text
+    
+    # اگر کاربر "اجباری معکوس" را انتخاب کرده
+    if strategy == "force_reverse":
         try:
-            # جدا کردن کلمات و معکوس کردن ترتیب آنها
-            words = text.split()
-            reversed_words = words[::-1]
-            return ' '.join(reversed_words)
+            lines = text.split('\n')
+            processed_lines = []
+            for line in lines:
+                # معکوس کردن هر خط به صورت character-level
+                reversed_line = line[::-1]
+                processed_lines.append(reversed_line)
+            return '\n'.join(processed_lines)
         except:
-            # در نهایت اگر هیچ کاری نشد، همان متن اصلی را برگردان
             return text
+    
+    # حالت خودکار (auto) - استراتژی‌های پیشین
+    # استراتژی 1: فقط از arabic_reshaper استفاده کنیم (بدون bidi)
+    try:
+        reshaped_text = arabic_reshaper.reshape(text)
+        # حذف get_display و استفاده مستقیم از reshaped_text
+        if reshaped_text and len(reshaped_text) >= len(text):
+            return reshaped_text
+    except Exception as e:
+        print(f"استراتژی 1 ناموفق: {str(e)}")
+    
+    # استراتژی 2: پردازش دستی با تشخیص حروف فارسی
+    try:
+        # تشخیص حروف فارسی/عربی
+        persian_chars = 'آابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی'
+        has_persian = any(char in persian_chars for char in text)
+        
+        if has_persian:
+            # برای متن فارسی: معکوس کردن کل متن
+            lines = text.split('\n')
+            processed_lines = []
+            for line in lines:
+                # معکوس کردن هر خط به صورت character-level
+                reversed_line = line[::-1]
+                processed_lines.append(reversed_line)
+            return '\n'.join(processed_lines)
+        else:
+            # برای متن انگلیسی: بدون تغییر
+            return text
+    except Exception as e:
+        print(f"استراتژی 2 ناموفق: {str(e)}")
+    
+    # استراتژی 3: معکوس کردن کلمات (fallback ساده)
+    try:
+        lines = text.split('\n')
+        processed_lines = []
+        for line in lines:
+            words = line.split()
+            if len(words) > 1:
+                # معکوس کردن ترتیب کلمات در هر خط
+                reversed_words = words[::-1]
+                processed_lines.append(' '.join(reversed_words))
+            else:
+                # اگر فقط یک کلمه است، کل خط را معکوس کن
+                processed_lines.append(line[::-1])
+        return '\n'.join(processed_lines)
+    except Exception as e:
+        print(f"استراتژی 3 ناموفق: {str(e)}")
+    
+    # استراتژی 4: در نهایت متن اصلی (worst case)
+    print("همه استراتژی‌ها ناموفق، بازگشت به متن اصلی")
+    return text
 
 # تابع بررسی وضعیت کتابخانه‌های RTL
 def check_rtl_libraries():
@@ -55,8 +109,11 @@ def check_rtl_libraries():
         # تست کتابخانه‌ها با متن نمونه
         test_text = "تست متن فارسی"
         reshaped = arabic_reshaper.reshape(test_text)
-        bidi_result = get_display(reshaped)
-        return True, "کتابخانه‌های RTL به درستی کار می‌کنند"
+        # حذف get_display از تست
+        if reshaped and len(reshaped) > 0:
+            return True, "کتابخانه arabic_reshaper به درستی کار می‌کند"
+        else:
+            return False, "مشکل در خروجی arabic_reshaper"
     except ImportError as e:
         return False, f"کتابخانه‌های RTL نصب نیستند: {str(e)}"
     except Exception as e:
@@ -408,6 +465,10 @@ if 'new_color_name' not in st.session_state:
 # برای ذخیره مقدار رنگ جدید
 if 'new_color_value' not in st.session_state:
     st.session_state.new_color_value = "#000000"
+
+# برای کنترل استراتژی پردازش متن فارسی
+if 'text_processing_strategy' not in st.session_state:
+    st.session_state.text_processing_strategy = "auto"  # auto, force_reverse, original
 
 # نمایش صفحه متناسب با وضعیت
 if st.session_state.current_page == 'settings':
@@ -1007,6 +1068,67 @@ if st.session_state.current_page == 'settings':
     st.markdown("---")
     st.markdown("### تنظیمات بیشتر")
     # در اینجا می‌توانید تنظیمات بیشتری اضافه کنید
+    
+    # بخش Debug برای تشخیص مشکل متن فارسی
+    st.markdown("---")
+    st.markdown("### 🔧 تشخیص مشکل متن فارسی")
+    
+    with st.expander("🔍 تست پردازش متن فارسی"):
+        st.info("این بخش برای تشخیص مشکل متن‌های برعکس روی سرور است.")
+        
+        # کنترل دستی استراتژی پردازش متن
+        st.markdown("#### ⚙️ انتخاب روش پردازش متن")
+        strategy_options = {
+            "auto": "🤖 خودکار (پیشنهادی)",
+            "force_reverse": "🔄 اجباری معکوس",
+            "original": "📝 بدون تغییر"
+        }
+        
+        selected_strategy = st.selectbox(
+            "روش پردازش متن:",
+            options=list(strategy_options.keys()),
+            format_func=lambda x: strategy_options[x],
+            index=0,
+            help="اگر متن‌ها برعکس نمایش داده می‌شوند، گزینه 'اجباری معکوس' را امتحان کنید"
+        )
+        
+        if selected_strategy != st.session_state.text_processing_strategy:
+            st.session_state.text_processing_strategy = selected_strategy
+            st.success(f"✅ روش پردازش متن به '{strategy_options[selected_strategy]}' تغییر کرد.")
+            st.info("🔄 لطفاً صفحه را refresh کنید یا متن جدیدی وارد کنید تا تغییرات اعمال شود.")
+        
+        test_text = st.text_input(
+            "متن تست را وارد کنید:",
+            value="سلام دنیا",
+            help="متن فارسی برای تست وارد کنید"
+        )
+        
+        if st.button("🧪 تست پردازش متن"):
+            if test_text:
+                debug_result = debug_persian_text(test_text)
+                st.code(debug_result)
+                
+                # نمایش نتیجه نهایی
+                final_result = process_persian_text(test_text)
+                st.success(f"نتیجه نهایی تابع process_persian_text: '{final_result}'")
+            else:
+                st.warning("لطفاً ابتدا متنی وارد کنید.")
+        
+        # راهنمای سریع
+        st.markdown("""
+        **راهنمای تفسیر نتایج:**
+        - ✅ **استراتژی 1 موفق**: کتابخانه‌های RTL کار می‌کنند
+        - ❌ **استراتژی 1 ناموفق**: مشکل در کتابخانه‌ها، fallback فعال می‌شود
+        - **تشخیص فارسی True**: متن دارای حروف فارسی است
+        - **تشخیص فارسی False**: متن انگلیسی است
+        """)
+        
+        # نمایش وضعیت فعلی کتابخانه‌ها
+        rtl_ok, rtl_msg = check_rtl_libraries()
+        if rtl_ok:
+            st.success(f"✅ وضعیت کتابخانه‌ها: {rtl_msg}")
+        else:
+            st.error(f"❌ وضعیت کتابخانه‌ها: {rtl_msg}")
 
 else:
     # صفحه اصلی
@@ -1624,3 +1746,60 @@ else:
                 st.error("❌ لطفاً ابتدا یک تمپلیت انتخاب کنید و حداقل یک لایه یا متن وارد کنید!")
         else:
             st.warning("⚠️ لطفاً ابتدا یک تمپلیت انتخاب کنید یا یک تمپلیت جدید آپلود کنید.") 
+
+# تابع تست و debug برای متن فارسی
+def debug_persian_text(text):
+    """
+    تابع debug برای بررسی وضعیت پردازش متن فارسی
+    """
+    if not text:
+        return "متن خالی است"
+    
+    results = []
+    results.append(f"متن ورودی: '{text}'")
+    results.append(f"طول متن: {len(text)}")
+    
+    # تست استراتژی 1
+    try:
+        import arabic_reshaper
+        reshaped = arabic_reshaper.reshape(text)
+        # تست روش جدید (بدون get_display)
+        results.append(f"✅ استراتژی 1 (فقط reshape): '{reshaped}'")
+        results.append(f"طول نتیجه: {len(reshaped)}")
+        
+        # تست روش قدیمی (با get_display) 
+        try:
+            from bidi.algorithm import get_display
+            bidi_result = get_display(reshaped)
+            results.append(f"✅ استراتژی 1 (با bidi): '{bidi_result}'")
+        except:
+            results.append(f"❌ get_display کار نمی‌کند")
+    except Exception as e:
+        results.append(f"❌ استراتژی 1 ناموفق: {str(e)}")
+    
+    # تست استراتژی 2
+    try:
+        persian_chars = 'آابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی'
+        has_persian = any(char in persian_chars for char in text)
+        results.append(f"تشخیص فارسی: {has_persian}")
+        if has_persian:
+            reversed_text = text[::-1]
+            results.append(f"✅ استراتژی 2: '{reversed_text}'")
+        else:
+            results.append(f"✅ استراتژی 2: متن انگلیسی، تغییری نداده شد")
+    except Exception as e:
+        results.append(f"❌ استراتژی 2 ناموفق: {str(e)}")
+    
+    # تست استراتژی 3
+    try:
+        words = text.split()
+        if len(words) > 1:
+            reversed_words = words[::-1]
+            result3 = ' '.join(reversed_words)
+        else:
+            result3 = text[::-1]
+        results.append(f"✅ استراتژی 3: '{result3}'")
+    except Exception as e:
+        results.append(f"❌ استراتژی 3 ناموفق: {str(e)}")
+    
+    return "\n".join(results)
