@@ -19,6 +19,49 @@ def wrap_text_to_lines(draw, text, font, max_width):
     # فقط متن را بر اساس خطوط جدید (اینتر) جدا می‌کنیم
     return text.split('\n')
 
+# تابع پردازش متن فارسی با مدیریت خطا برای سرور
+def process_persian_text(text):
+    """
+    پردازش متن فارسی با مدیریت خطا برای سرورها
+    """
+    if not text:
+        return ""
+    
+    try:
+        # تلاش برای پردازش صحیح متن فارسی
+        reshaped_text = arabic_reshaper.reshape(text)
+        bidi_text = get_display(reshaped_text)
+        return bidi_text
+    except Exception as e:
+        # اگر کتابخانه‌های RTL کار نکردند، از متن اصلی استفاده کن
+        print(f"خطا در پردازش متن فارسی: {str(e)}")
+        # برای متن فارسی که بدون پردازش نمایش داده می‌شود، 
+        # حداقل ترتیب کلمات را معکوس می‌کنیم
+        try:
+            # جدا کردن کلمات و معکوس کردن ترتیب آنها
+            words = text.split()
+            reversed_words = words[::-1]
+            return ' '.join(reversed_words)
+        except:
+            # در نهایت اگر هیچ کاری نشد، همان متن اصلی را برگردان
+            return text
+
+# تابع بررسی وضعیت کتابخانه‌های RTL
+def check_rtl_libraries():
+    """
+    بررسی وضعیت کتابخانه‌های پردازش متن راست به چپ
+    """
+    try:
+        # تست کتابخانه‌ها با متن نمونه
+        test_text = "تست متن فارسی"
+        reshaped = arabic_reshaper.reshape(test_text)
+        bidi_result = get_display(reshaped)
+        return True, "کتابخانه‌های RTL به درستی کار می‌کنند"
+    except ImportError as e:
+        return False, f"کتابخانه‌های RTL نصب نیستند: {str(e)}"
+    except Exception as e:
+        return False, f"خطا در کتابخانه‌های RTL: {str(e)}"
+
 # تنظیمات اولیه صفحه
 st.set_page_config(
     page_title="تصویرساز فارسی",
@@ -236,6 +279,17 @@ st.markdown(f"""
 # بررسی احراز هویت
 if not init_auth():
     st.stop()
+
+# بررسی وضعیت کتابخانه‌های RTL
+rtl_status, rtl_message = check_rtl_libraries()
+if not rtl_status:
+    # نمایش هشدار در expander تا کمتر مزاحم باشد
+    with st.expander("⚠️ هشدار: مشکل در نمایش متن فارسی"):
+        st.warning(f"علت: {rtl_message}")
+        st.info("💡 برای رفع این مشکل، دستورات زیر را در سرور اجرا کنید:")
+        st.code("pip install arabic-reshaper python-bidi")
+        st.warning("🔧 در حال حاضر از حالت جایگزین استفاده می‌شود.")
+# اگر همه چیز درست است، پیغام موفقیت نمایش نده که صفحه شلوغ نشود
 
 # مسیر فایل دیتابیس رنگ‌ها
 COLORS_DB_PATH = os.path.join("/tmp", "colors.json")
@@ -759,8 +813,7 @@ if st.session_state.current_page == 'settings':
                                     preview_image = Image.alpha_composite(preview_image, template_rgba)
                                 
                                 # آماده‌سازی متن فارسی
-                                reshaped_text = arabic_reshaper.reshape(st.session_state.preview_text)
-                                bidi_text = get_display(reshaped_text)
+                                bidi_text = process_persian_text(st.session_state.preview_text)
                                 
                                 # محاسبه سایز فونت بر اساس درصد ارتفاع
                                 font_size = int(template_height * (st.session_state.preview_font_size / 100))
@@ -1063,8 +1116,7 @@ else:
                     # اضافه کردن متن به عنوان بالاترین لایه (روی همه چیز، حتی تمپلیت)
                     if st.session_state.text:
                         # آماده‌سازی متن فارسی
-                        reshaped_text = arabic_reshaper.reshape(st.session_state.text)
-                        bidi_text = get_display(reshaped_text)
+                        bidi_text = process_persian_text(st.session_state.text)
                         
                         # محاسبه سایز فونت بر اساس درصد ارتفاع
                         font_size = int(template_height * (st.session_state.font_size_percent / 100))
@@ -1497,8 +1549,7 @@ else:
                     # اضافه کردن متن به عنوان بالاترین لایه (روی همه چیز، حتی تمپلیت)
                     if st.session_state.text:
                         # آماده‌سازی متن فارسی
-                        reshaped_text = arabic_reshaper.reshape(st.session_state.text)
-                        bidi_text = get_display(reshaped_text)
+                        bidi_text = process_persian_text(st.session_state.text)
                         
                         # محاسبه سایز فونت بر اساس درصد ارتفاع
                         font_size = int(template_height * (st.session_state.font_size_percent / 100))
