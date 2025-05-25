@@ -1236,6 +1236,10 @@ else:
         
         with tab2:
             st.header("پیش‌نمایش")
+            
+            # ایجاد یک placeholder برای پیش‌نمایش که به‌روزرسانی می‌شود
+            preview_placeholder = st.empty()
+            
             # بررسی وجود تمپلیت (از فایل آپلود شده یا انتخاب شده)
             template_path = None
             if st.session_state.selected_template_path:
@@ -1357,13 +1361,20 @@ else:
                         except Exception as e:
                             st.error(f"خطا در بارگذاری فونت: {str(e)}")
                     
-                    # نمایش تصویر با سایز محدود شده
-                    st.image(preview_image, caption=f"پیش‌نمایش ({template_width}x{template_height})", width=300)
+                    # نمایش تصویر با سایز محدود شده در placeholder
+                    with preview_placeholder.container():
+                        st.image(preview_image, caption=f"پیش‌نمایش ({template_width}x{template_height})", width=300)
+                        
+                        # اضافه کردن دکمه refresh برای بروزرسانی دستی
+                        if st.button("🔄 بروزرسانی پیش‌نمایش", key="refresh_preview"):
+                            st.rerun()
                     
                 except Exception as e:
-                    st.error(f"❌ خطا در ساخت پیش‌نمایش: {str(e)}")
+                    with preview_placeholder.container():
+                        st.error(f"❌ خطا در ساخت پیش‌نمایش: {str(e)}")
             else:
-                st.info("👆 برای مشاهده پیش‌نمایش، ابتدا یک تمپلیت انتخاب کنید و حداقل یک لایه، عنوان یا متن اضافه کنید.")
+                with preview_placeholder.container():
+                    st.info("👆 برای مشاهده پیش‌نمایش، ابتدا یک تمپلیت انتخاب کنید و حداقل یک لایه، عنوان یا متن اضافه کنید.")
         
         # نمایش اطلاعات کاربر و دکمه خروج
         st.markdown("---")
@@ -1414,7 +1425,8 @@ else:
             template_basename = os.path.splitext(selected_template)[0]
             template_settings = load_template_settings(template_basename)
             
-            if template_settings:
+            # فقط در صورتی تنظیمات پیش‌فرض را اعمال کن که تمپلیت تغییر کرده باشد
+            if template_settings and st.session_state.get('last_loaded_template') != selected_template:
                 # اعمال تنظیمات پیش‌فرض برای متن
                 text_settings = template_settings.get("text", {})
                 st.session_state.font_size_percent = text_settings.get("font_size_percent", 4)
@@ -1424,6 +1436,19 @@ else:
                 st.session_state.text_y_percent = text_settings.get("text_y_percent", 98)
                 st.session_state.max_text_width_percent = text_settings.get("max_text_width_percent", 80)
                 st.session_state.line_spacing_percent = text_settings.get("line_spacing_percent", 120)
+                
+                # اعمال تنظیمات پیش‌فرض برای عنوان
+                title_settings = template_settings.get("title", {})
+                st.session_state.title_font_size_percent = title_settings.get("font_size_percent", 6)
+                st.session_state.title_text_color = title_settings.get("text_color", "#000000")
+                st.session_state.title_is_bold = title_settings.get("is_bold", True)
+                st.session_state.title_text_x_percent = title_settings.get("text_x_percent", 50)
+                st.session_state.title_text_y_percent = title_settings.get("text_y_percent", 10)
+                st.session_state.title_max_text_width_percent = title_settings.get("max_text_width_percent", 80)
+                st.session_state.title_line_spacing_percent = title_settings.get("line_spacing_percent", 120)
+                
+                # ذخیره نام تمپلیت فعلی
+                st.session_state.last_loaded_template = selected_template
                 
                 # ذخیره تنظیمات پیش‌فرض لایه برای استفاده در هنگام ایجاد لایه جدید
                 if "default_layer_settings" not in st.session_state:
@@ -1569,7 +1594,11 @@ else:
         title_col1, title_col2 = st.columns(2)
 
         with title_col1:
-            title_font_size = st.slider("سایز فونت عنوان (% ارتفاع تصویر)", 1, 20, st.session_state.title_font_size_percent, key="title_font_size_slider", help="سایز فونت عنوان به صورت درصدی از ارتفاع تصویر", on_change=lambda: st.session_state.update({"title_font_size_percent": st.session_state.title_font_size_slider}))
+            title_font_size = st.slider("سایز فونت عنوان (% ارتفاع تصویر)", 1, 20, st.session_state.title_font_size_percent, key="title_font_size_slider", help="سایز فونت عنوان به صورت درصدی از ارتفاع تصویر")
+            # بروزرسانی session state
+            if 'title_font_size_slider' in st.session_state:
+                st.session_state.title_font_size_percent = st.session_state.title_font_size_slider
+                
             title_color = st.color_picker("رنگ عنوان", st.session_state.title_text_color, key="title_color_picker", help="رنگ عنوان را انتخاب کنید")
             if 'title_color_picker' in st.session_state and st.session_state.title_color_picker != st.session_state.title_text_color:
                 st.session_state.title_text_color = st.session_state.title_color_picker
@@ -1578,10 +1607,25 @@ else:
                 st.session_state.title_is_bold = st.session_state.title_is_bold_checkbox
 
         with title_col2:
-            title_x = st.slider("موقعیت افقی عنوان (%)", 0, 100, st.session_state.title_text_x_percent, key="title_x_slider", help="0: کاملاً چپ تمپلیت، 50: وسط تمپلیت، 100: کاملاً راست تمپلیت", on_change=lambda: st.session_state.update({"title_text_x_percent": st.session_state.title_x_slider}))
-            title_y = st.slider("موقعیت عمودی عنوان (%)", 0, 100, st.session_state.title_text_y_percent, key="title_y_slider", help="0: کاملاً بالای تمپلیت، 50: وسط تمپلیت، 100: کاملاً پایین تمپلیت", on_change=lambda: st.session_state.update({"title_text_y_percent": st.session_state.title_y_slider}))
-            title_max_width = st.slider("عرض عنوان (%)", 10, 100, st.session_state.title_max_text_width_percent, key="title_max_width_slider", help="حداکثر عرض عنوان به صورت درصدی از عرض تمپلیت", on_change=lambda: st.session_state.update({"title_max_text_width_percent": st.session_state.title_max_width_slider}))
-            title_line_spacing = st.slider("فاصله خطوط عنوان (%)", 100, 200, st.session_state.title_line_spacing_percent, key="title_line_spacing_slider", help="فاصله بین خطوط عنوان به صورت درصدی از ارتفاع خط", on_change=lambda: st.session_state.update({"title_line_spacing_percent": st.session_state.title_line_spacing_slider}))
+            title_x = st.slider("موقعیت افقی عنوان (%)", 0, 100, st.session_state.title_text_x_percent, key="title_x_slider", help="0: کاملاً چپ تمپلیت، 50: وسط تمپلیت، 100: کاملاً راست تمپلیت")
+            # بروزرسانی session state
+            if 'title_x_slider' in st.session_state:
+                st.session_state.title_text_x_percent = st.session_state.title_x_slider
+                
+            title_y = st.slider("موقعیت عمودی عنوان (%)", 0, 100, st.session_state.title_text_y_percent, key="title_y_slider", help="0: کاملاً بالای تمپلیت، 50: وسط تمپلیت، 100: کاملاً پایین تمپلیت")
+            # بروزرسانی session state
+            if 'title_y_slider' in st.session_state:
+                st.session_state.title_text_y_percent = st.session_state.title_y_slider
+                
+            title_max_width = st.slider("عرض عنوان (%)", 10, 100, st.session_state.title_max_text_width_percent, key="title_max_width_slider", help="حداکثر عرض عنوان به صورت درصدی از عرض تمپلیت")
+            # بروزرسانی session state
+            if 'title_max_width_slider' in st.session_state:
+                st.session_state.title_max_text_width_percent = st.session_state.title_max_width_slider
+                
+            title_line_spacing = st.slider("فاصله خطوط عنوان (%)", 100, 200, st.session_state.title_line_spacing_percent, key="title_line_spacing_slider", help="فاصله بین خطوط عنوان به صورت درصدی از ارتفاع خط")
+            # بروزرسانی session state
+            if 'title_line_spacing_slider' in st.session_state:
+                st.session_state.title_line_spacing_percent = st.session_state.title_line_spacing_slider
 
         # ورود متن
         st.markdown('<p class="upload-header">4️⃣ وارد کردن متن</p>', unsafe_allow_html=True)
@@ -1596,7 +1640,11 @@ else:
         text_col1, text_col2 = st.columns(2)
 
         with text_col1:
-            font_size = st.slider("سایز فونت (% ارتفاع تصویر)", 1, 20, st.session_state.font_size_percent, key="font_size_slider", help="سایز فونت به صورت درصدی از ارتفاع تصویر", on_change=lambda: st.session_state.update({"font_size_percent": st.session_state.font_size_slider}))
+            font_size = st.slider("سایز فونت (% ارتفاع تصویر)", 1, 20, st.session_state.font_size_percent, key="font_size_slider", help="سایز فونت به صورت درصدی از ارتفاع تصویر")
+            # بروزرسانی session state
+            if 'font_size_slider' in st.session_state:
+                st.session_state.font_size_percent = st.session_state.font_size_slider
+                
             text_color = st.color_picker("رنگ متن", st.session_state.text_color, key="text_color_picker", help="رنگ متن را انتخاب کنید")
             if 'text_color_picker' in st.session_state and st.session_state.text_color_picker != st.session_state.text_color:
                 st.session_state.text_color = st.session_state.text_color_picker
@@ -1605,10 +1653,25 @@ else:
                 st.session_state.is_bold = st.session_state.is_bold_checkbox
 
         with text_col2:
-            text_x = st.slider("موقعیت افقی متن (%)", 0, 100, st.session_state.text_x_percent, key="text_x_slider", help="0: کاملاً چپ تمپلیت، 50: وسط تمپلیت، 100: کاملاً راست تمپلیت", on_change=lambda: st.session_state.update({"text_x_percent": st.session_state.text_x_slider}))
-            text_y = st.slider("موقعیت عمودی متن (%)", 0, 100, st.session_state.text_y_percent, key="text_y_slider", help="0: کاملاً بالای تمپلیت، 50: وسط تمپلیت، 100: کاملاً پایین تمپلیت", on_change=lambda: st.session_state.update({"text_y_percent": st.session_state.text_y_slider}))
-            max_text_width = st.slider("عرض متن (%)", 10, 100, st.session_state.max_text_width_percent, key="max_text_width_slider", help="حداکثر عرض متن به صورت درصدی از عرض تمپلیت", on_change=lambda: st.session_state.update({"max_text_width_percent": st.session_state.max_text_width_slider}))
-            line_spacing = st.slider("فاصله خطوط (%)", 100, 200, st.session_state.line_spacing_percent, key="line_spacing_slider", help="فاصله بین خطوط متن به صورت درصدی از ارتفاع خط", on_change=lambda: st.session_state.update({"line_spacing_percent": st.session_state.line_spacing_slider}))
+            text_x = st.slider("موقعیت افقی متن (%)", 0, 100, st.session_state.text_x_percent, key="text_x_slider", help="0: کاملاً چپ تمپلیت، 50: وسط تمپلیت، 100: کاملاً راست تمپلیت")
+            # بروزرسانی session state
+            if 'text_x_slider' in st.session_state:
+                st.session_state.text_x_percent = st.session_state.text_x_slider
+                
+            text_y = st.slider("موقعیت عمودی متن (%)", 0, 100, st.session_state.text_y_percent, key="text_y_slider", help="0: کاملاً بالای تمپلیت، 50: وسط تمپلیت، 100: کاملاً پایین تمپلیت")
+            # بروزرسانی session state
+            if 'text_y_slider' in st.session_state:
+                st.session_state.text_y_percent = st.session_state.text_y_slider
+                
+            max_text_width = st.slider("عرض متن (%)", 10, 100, st.session_state.max_text_width_percent, key="max_text_width_slider", help="حداکثر عرض متن به صورت درصدی از عرض تمپلیت")
+            # بروزرسانی session state
+            if 'max_text_width_slider' in st.session_state:
+                st.session_state.max_text_width_percent = st.session_state.max_text_width_slider
+                
+            line_spacing = st.slider("فاصله خطوط (%)", 100, 200, st.session_state.line_spacing_percent, key="line_spacing_slider", help="فاصله بین خطوط متن به صورت درصدی از ارتفاع خط")
+            # بروزرسانی session state
+            if 'line_spacing_slider' in st.session_state:
+                st.session_state.line_spacing_percent = st.session_state.line_spacing_slider
 
         # دکمه ساخت تصویر
         st.markdown("---")
